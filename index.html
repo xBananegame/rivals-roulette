@@ -972,20 +972,52 @@ function slug(name){
 function initials(name){
   return name.replace("&","").split(/\s+/).filter(w=>w).slice(0,2).map(w=>w[0].toUpperCase()).join("");
 }
+/* Kurznamen-Aliase für Bilddateien (falls Dateien verkürzte Namen tragen) */
+const IMG_ALIASES = {
+  "Devil Dinosaur":      ["devil-dino"],
+  "Elsa Bloodstone":     ["elsa"],
+  "Jeff the Land Shark": ["jeff"],
+  "Mister Fantastic":    ["mr-fantastic"],
+  "Rocket Raccoon":      ["rocket"],
+  "The Punisher":        ["punisher"],
+  "The Thing":           ["thing"],
+  "Peni Parker":         ["peni"],
+  "Winter Soldier":      ["bucky"],
+  "Invisible Woman":     ["sue-storm"],
+  "Adam Warlock":        ["warlock"]
+};
+/* Erzeugt alle Datei-Kandidaten: <name>{_|-}prestige (inkl. Tippfehler "restige"),
+   danach der blanke Name – jeweils als .png/.jpg/.webp */
+function imgCandidates(hero){
+  if(hero.img) return [hero.img];
+  const bases = [slug(hero.n), ...(IMG_ALIASES[hero.n]||[])];
+  const out = [];
+  for(const b of bases){
+    for(const suf of ["_prestige","-prestige","_restige","-restige",""]){
+      out.push("img/"+b+suf+".png");
+    }
+    out.push("img/"+b+".jpg", "img/"+b+".webp");
+  }
+  return out;
+}
 function avatarNode(hero, cls=""){
   const div = document.createElement("div");
   div.className = "avatar " + cls;
   div.style.setProperty("--ac", ROLES[hero.r].color);
+  const candidates = imgCandidates(hero);
+  let ci = 0;
   const img = document.createElement("img");
   img.alt = hero.n;
   img.loading = "lazy";
   img.onerror = ()=>{
+    ci++;
+    if(ci < candidates.length){ img.src = candidates[ci]; return; }
     img.remove();
     const s = document.createElement("span");
     s.textContent = initials(hero.n);
     div.appendChild(s);
   };
-  img.src = hero.img || ("img/" + slug(hero.n) + ".png");
+  img.src = candidates[0];
   div.appendChild(img);
   return div;
 }
