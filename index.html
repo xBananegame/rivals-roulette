@@ -1161,46 +1161,93 @@ function heroTagNode(name){
 }
 
 /* =====================================================
-   HINTERGRUND (Map-Bilder)
-   Option A: Dateinamen hier eintragen, z. B.
-     const MAP_IMAGES = ["img/maps/img_map_tokyo.jpg", "img/maps/img_map_wakanda.jpg"];
-   Option B: Dateien nummerieren als img/maps/map-1.jpg, map-2.jpg, …
-     (auch .png/.webp) – die werden automatisch gefunden.
-   Ordnernamen bitte OHNE Leerzeichen (also "maps" statt "map img").
+   HINTERGRUND (Map-Bilder aus img/maps/)
+   1) Auf GitHub Pages werden die Dateien AUTOMATISCH über die
+      GitHub-API gefunden – neue Maps einfach in den Ordner legen.
+   2) Fällt die API aus, greift die Liste MAP_IMAGES unten.
+   3) Zusätzlich werden nummerierte Dateien (map-1.jpg …) gesucht.
    ===================================================== */
-const MAP_IMAGES = [];
+const MAP_FOLDERS = ["img/maps", "img/map img"]; // beide Ordnernamen werden unterstützt
+const MAP_FILES = [
+  "img_map_hallofdialia.png","img_map_hellfiregala_arakko.png","img_map_hydrabase_altar.png",
+  "img_map_hydrabase_arsenal.png","img_map_hydrabase.png","img_map_hydracharterisbase.png",
+  "img_map_hydraerebusbase.png","img_map_jeffland.png","img_map_klyntar_abyssthrone.png",
+  "img_map_klyntar_ruins.png","img_map_krakoa_carousel.png","img_map_krakoa_cradle.png",
+  "img_map_krakoa_grove.png","img_map_kunlun_heartoftiandu.png","img_map_kunlun_shenlongarena.png",
+  "img_map_midtown.png","img_map_museum_collectorpark.png","img_map_newayo_acm.png",
+  "img_map_newyork_manhattan.png","img_map_nuevayork_acm.png","img_map_practicerance.png",
+  "img_map_randomnmap.png","img_map_sanctumsanctorum.png","img_map_thorny_jungle.png",
+  "img_map_tokyowebworld_metropolis.png","img_map_tokyowebworld_shrine.png",
+  "img_map_tokyowebworld_spiderisland.png","img_map_wakanda.png","img_map_yggdrasil_garden.png",
+  "img_map_yggdrasil_throne.png","img_map_yggdrasil.png"
+];
 const MAP_INTERVAL = 18000; // Wechsel alle 18 Sekunden
 
+async function discoverMaps(){
+  // Auf *.github.io: Owner + Repo aus der URL ableiten und Ordner per API listen
+  try{
+    if(location.hostname.endsWith("github.io")){
+      const owner = location.hostname.split(".")[0];
+      const repo = location.pathname.split("/").filter(Boolean)[0];
+      if(owner && repo){
+        for(const folder of MAP_FOLDERS){
+          const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(folder).replace(/%2F/g,"/")}`);
+          if(!res.ok) continue;
+          const files = await res.json();
+          const imgs = files
+            .filter(f=>f.type==="file" && /\.(png|jpe?g|webp)$/i.test(f.name))
+            .map(f=>folder+"/"+f.name);
+          if(imgs.length) return imgs;
+        }
+      }
+    }
+  }catch(e){}
+  return null; // API nicht verfügbar → Fallback nutzen
+}
+
 function initMapBackground(){
-  const found = [];
   const tryLoad = src => new Promise(res=>{
     const im = new Image();
     im.onload = ()=>res(src);
     im.onerror = ()=>res(null);
     im.src = src;
   });
-  const probes = [...MAP_IMAGES.map(tryLoad)];
-  // Nummerierte Dateien automatisch suchen: img/maps/map-1..30.{jpg,png,webp}
-  const auto = (async ()=>{
-    const hits = [];
-    let misses = 0;
-    for(let i=1;i<=30 && misses<3;i++){
-      let hit = null;
-      for(const ext of ["jpg","png","webp"]){
-        hit = await tryLoad(`img/maps/map-${i}.${ext}`);
-        if(hit) break;
+
+  (async ()=>{
+    let found = await discoverMaps();
+    if(!found){
+      // Fallback 1: bekannte Dateinamen in beiden Ordnern durchprobieren
+      found = [];
+      for(const folder of MAP_FOLDERS){
+        const manual = await Promise.all(MAP_FILES.map(f=>tryLoad(folder+"/"+f)));
+        found.push(...manual.filter(Boolean));
+        if(found.length) break;
       }
-      if(hit){ hits.push(hit); misses = 0; } else { misses++; }
+      // Fallback 2: nummerierte Dateien map-1.jpg/png/webp …
+      for(const folder of MAP_FOLDERS){
+        let misses = 0;
+        for(let i=1;i<=30 && misses<3;i++){
+          let hit = null;
+          for(const ext of ["jpg","png","webp"]){
+            hit = await tryLoad(`${folder}/map-${i}.${ext}`);
+            if(hit) break;
+          }
+          if(hit){ found.push(hit); misses = 0; } else { misses++; }
+        }
+      }
     }
-    return hits;
-  })();
-  Promise.all(probes).then(async manual=>{
-    found.push(...manual.filter(Boolean), ...(await auto));
     if(found.length===0) return;
+
+    // zufällige Reihenfolge, damit nicht immer dieselbe Map startet
+    for(let i=found.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [found[i],found[j]] = [found[j],found[i]];
+    }
+
     const box = document.getElementById("bgSlides");
     found.forEach((src,i)=>{
       const im = document.createElement("img");
-      im.src = src; im.alt = "";
+      im.src = src; im.alt = ""; im.loading = "lazy";
       if(i===0) im.classList.add("on");
       box.appendChild(im);
     });
@@ -1214,7 +1261,7 @@ function initMapBackground(){
         imgs[cur].classList.add("on");
       }, MAP_INTERVAL);
     }
-  });
+  })();
 }
 
 /* ===================================================== I18N ANWENDEN */
