@@ -196,6 +196,28 @@
   .avatar.sm span{font-size:15px}
   .avatar.lg{width:84px;height:84px}
   .avatar.lg span{font-size:30px}
+  .avatar.xl{width:128px;height:128px}
+  .avatar.xl span{font-size:44px}
+  .avatar.xs{width:24px;height:24px}
+  .avatar.xs span{font-size:9px}
+  .avatar.fill{width:100%;height:auto;aspect-ratio:1}
+  .avatar.fill span{font-size:clamp(22px,5vw,40px)}
+
+  /* ---------- Hintergrund-Slideshow (Maps) ---------- */
+  .bg-slides{position:fixed;inset:0;z-index:-1;display:none}
+  body.has-bg{background:#0b0920}
+  body.has-bg .bg-slides{display:block}
+  .bg-slides img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transition:opacity 2.5s ease;
+  }
+  .bg-slides img.on{opacity:1}
+  .bg-slides::after{ /* dunkler Schleier, damit die UI lesbar bleibt */
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(1100px 640px at 80% -10%, rgba(122,72,255,.25), transparent 62%),
+      linear-gradient(180deg, rgba(15,11,38,.88), rgba(11,9,32,.93));
+  }
 
   /* ---------- Ausgelassen ---------- */
   .bench{margin-top:16px}
@@ -261,6 +283,38 @@
   .strat-desc b{color:var(--ink)}
   .strat-heroes{display:flex;flex-wrap:wrap;gap:7px}
   .hero-tag{font-size:11.5px;padding:4px 9px;border:1px solid var(--line);clip-path:var(--cut);background:rgba(255,255,255,.04);color:var(--ink)}
+  .hero-tag.with-img{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 5px}
+
+  /* ---------- Helden-Galerie ---------- */
+  .gal-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .gal-filter button{
+    background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
+    font-family:inherit;font-weight:800;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+    padding:9px 14px;clip-path:var(--cut);cursor:pointer;transition:background .15s,color .15s;
+  }
+  .gal-filter button.on{background:var(--gold);color:var(--bg);border-color:transparent}
+  .gallery-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px;padding-bottom:12px;
+  }
+  .gal-card{
+    background:var(--panel);border:1px solid var(--line);clip-path:var(--cut);
+    padding:8px 8px 10px;cursor:pointer;color:var(--ink);font-family:inherit;text-align:center;
+    transition:transform .14s;animation:cardIn .35s ease both;
+  }
+  .gal-card:hover{transform:translateY(-3px)}
+  .gal-card:active{transform:scale(.96)}
+  .gal-card .name{display:block;font-size:11px;font-weight:700;margin-top:8px;line-height:1.25;min-height:2.4em}
+  .gal-card .role{display:block;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-top:3px;color:var(--rc)}
+  .gal-count{color:var(--muted);font-size:11.5px;margin-bottom:12px}
+
+  /* ---------- Helden-Detail ---------- */
+  .hero-detail-top{display:flex;gap:16px;align-items:center;margin-bottom:14px}
+  .stats{border-top:1px solid var(--line);margin-top:4px}
+  .stat-row{display:flex;justify-content:space-between;gap:14px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px}
+  .stat-row .k{color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px;padding-top:2px}
+  .stat-row .v{text-align:right;color:var(--ink);font-weight:600}
+  .detail-sub{font-size:10px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+  .sheet-scroll{max-height:min(72dvh,640px);overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
 
   /* ---------- Bibliothek ---------- */
   .lib-intro{color:var(--muted);font-size:13.5px;line-height:1.55;margin-bottom:16px}
@@ -358,10 +412,13 @@
     #home .sub{margin:14px auto 0;max-width:52ch}
     .logo{font-size:76px}
     .logo .l2{display:inline;margin-left:14px}
-    .menu{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px}
+    .menu{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:44px}
     .menu-card{padding:26px 22px}
     .menu-card h2{font-size:23px}
     .menu-card p{font-size:13.5px}
+    .gallery-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+    .gal-card .name{font-size:12.5px}
+    .avatar.xl{width:150px;height:150px}
 
     /* Wheel: zweispaltig */
     .wheel-layout{display:grid;grid-template-columns:auto 1fr;gap:44px;align-items:start}
@@ -391,6 +448,7 @@
 </style>
 </head>
 <body>
+<div class="bg-slides" id="bgSlides" aria-hidden="true"></div>
 <div class="wrap">
 
   <!-- ============ HOME ============ -->
@@ -425,6 +483,12 @@
         <span class="glyph">🕵️</span>
         <h2 class="display" data-i18n="menuGuessTitle"></h2>
         <p data-i18n="menuGuessDesc"></p>
+      </button>
+      <button class="menu-card frame card-gallery" style="--c1:var(--flex)" onclick="showScreen('galleryScreen')">
+        <span class="beam"></span>
+        <span class="glyph">🖼️</span>
+        <h2 class="display" data-i18n="menuGalleryTitle"></h2>
+        <p data-i18n="menuGalleryDesc"></p>
       </button>
     </div>
 
@@ -527,6 +591,21 @@
     <div class="lib-list" id="libList"></div>
   </section>
 
+  <!-- ============ GALERIE ============ -->
+  <section class="screen" id="galleryScreen" style="--tint:var(--flex)">
+    <div class="topbar">
+      <button class="icon-btn" onclick="showScreen('home')" aria-label="Back">‹</button>
+      <h2 class="display screen-title" data-i18n="galleryTitle"></h2>
+      <div class="top-right">
+        <button class="icon-btn lang lang-btn" onclick="toggleLang()">EN</button>
+        <button class="icon-btn sound-btn" onclick="toggleSound()" aria-label="Sound">🔊</button>
+      </div>
+    </div>
+    <div class="gal-filter" id="galFilter"></div>
+    <div class="gal-count" id="galCount"></div>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </section>
+
   <!-- ============ GUESS ============ -->
   <section class="screen" id="guessScreen" style="--tint:var(--duel)">
     <div class="topbar">
@@ -574,11 +653,11 @@
 </div>
 
 <!-- ============ RESULT SHEET ============ -->
-<div class="sheet-backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet(); closeHeroSheet()"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="resultName">
   <div class="grip"></div>
   <div class="result-top">
-    <div class="avatar lg" id="resultAvatar"><span></span></div>
+    <div class="avatar xl" id="resultAvatar"><span></span></div>
     <div>
       <span class="role-badge" id="resultRole"></span>
       <h3 class="display result-name" id="resultName"></h3>
@@ -591,6 +670,30 @@
       <button class="btn ghost" onclick="closeSheet()" data-i18n="keepBtn"></button>
     </div>
     <button class="btn big" onclick="closeSheet(); spin()" data-i18n="spinAgainBtn"></button>
+  </div>
+</div>
+
+<!-- ============ HELDEN-DETAIL (Galerie) ============ -->
+<div class="sheet" id="heroSheet" role="dialog" aria-modal="true">
+  <div class="grip"></div>
+  <div class="sheet-scroll">
+    <div class="hero-detail-top">
+      <div class="avatar xl" id="dtAvatar"><span></span></div>
+      <div>
+        <span class="role-badge" id="dtRole"></span>
+        <h3 class="display result-name" id="dtName"></h3>
+      </div>
+    </div>
+    <p class="result-info" id="dtInfo"></p>
+    <div class="detail-sub" data-i18n="dtProfile"></div>
+    <div class="stats" id="dtStats"></div>
+    <div id="dtFeaturedWrap">
+      <div class="detail-sub" data-i18n="dtFeatured"></div>
+      <div class="strat-heroes" id="dtFeatured"></div>
+    </div>
+  </div>
+  <div class="actions" style="margin-top:16px">
+    <button class="btn big" onclick="closeHeroSheet()" data-i18n="closeBtn"></button>
   </div>
 </div>
 
@@ -633,7 +736,15 @@ const UI = {
     bannerWin:(n)=>`Gefunden: <span>${n}</span>!`,
     bannerLose:(n)=>`Es war… <span>${n}</span>`,
     bannerWinText:(t,i)=>`Stark – geknackt in <b>${t}</b> ${t===1?"Versuch":"Versuchen"}. ${i}`,
-    playAgainBtn:"Nochmal spielen"
+    playAgainBtn:"Nochmal spielen",
+    menuGalleryTitle:'Helden-<span>Galerie</span>',
+    menuGalleryDesc:"Alle 51 Helden im Überblick – mit Bild, Spielstil-Info und dem kompletten Steckbrief für Guess the Character.",
+    galleryTitle:'Helden-<span class="tint">Galerie</span>',
+    filterAll:"Alle",
+    galCount:(n)=>`${n} Helden`,
+    dtProfile:"Steckbrief",
+    dtFeatured:"Taucht in diesen Strats auf",
+    closeBtn:"Schließen"
   },
   en:{
     homeSub:"No idea who to play? Let fate decide – or prove you know the roster inside out.",
@@ -668,7 +779,15 @@ const UI = {
     bannerWin:(n)=>`Found: <span>${n}</span>!`,
     bannerLose:(n)=>`It was… <span>${n}</span>`,
     bannerWinText:(t,i)=>`Nice – cracked in <b>${t}</b> ${t===1?"try":"tries"}. ${i}`,
-    playAgainBtn:"Play again"
+    playAgainBtn:"Play again",
+    menuGalleryTitle:'Hero <span>Gallery</span>',
+    menuGalleryDesc:"All 51 heroes at a glance – with image, playstyle info and the full Guess-the-Character profile.",
+    galleryTitle:'Hero <span class="tint">Gallery</span>',
+    filterAll:"All",
+    galCount:(n)=>`${n} heroes`,
+    dtProfile:"Profile",
+    dtFeatured:"Featured in these strats",
+    closeBtn:"Close"
   }
 };
 
@@ -1022,10 +1141,80 @@ function avatarNode(hero, cls=""){
   return div;
 }
 function setAvatar(el, hero){
-  const fresh = avatarNode(hero, el.classList.contains("lg") ? "lg" : "");
-  el.replaceWith(fresh);
+  const extra = [...el.classList].filter(c=>c!=="avatar").join(" ");
+  const fresh = avatarNode(hero, extra);
   fresh.id = el.id;
+  el.replaceWith(fresh);
   return fresh;
+}
+const HERO_BY_NAME = Object.fromEntries(HEROES.map(h=>[h.n,h]));
+/* Chip mit Mini-Bild + Name (für Strats & Bibliothek) */
+function heroTagNode(name){
+  const tag = document.createElement("span");
+  tag.className = "hero-tag with-img";
+  const h = HERO_BY_NAME[name];
+  if(h) tag.appendChild(avatarNode(h,"xs"));
+  const s = document.createElement("span");
+  s.textContent = name;
+  tag.appendChild(s);
+  return tag;
+}
+
+/* =====================================================
+   HINTERGRUND (Map-Bilder)
+   Option A: Dateinamen hier eintragen, z. B.
+     const MAP_IMAGES = ["img/maps/img_map_tokyo.jpg", "img/maps/img_map_wakanda.jpg"];
+   Option B: Dateien nummerieren als img/maps/map-1.jpg, map-2.jpg, …
+     (auch .png/.webp) – die werden automatisch gefunden.
+   Ordnernamen bitte OHNE Leerzeichen (also "maps" statt "map img").
+   ===================================================== */
+const MAP_IMAGES = [];
+const MAP_INTERVAL = 18000; // Wechsel alle 18 Sekunden
+
+function initMapBackground(){
+  const found = [];
+  const tryLoad = src => new Promise(res=>{
+    const im = new Image();
+    im.onload = ()=>res(src);
+    im.onerror = ()=>res(null);
+    im.src = src;
+  });
+  const probes = [...MAP_IMAGES.map(tryLoad)];
+  // Nummerierte Dateien automatisch suchen: img/maps/map-1..30.{jpg,png,webp}
+  const auto = (async ()=>{
+    const hits = [];
+    let misses = 0;
+    for(let i=1;i<=30 && misses<3;i++){
+      let hit = null;
+      for(const ext of ["jpg","png","webp"]){
+        hit = await tryLoad(`img/maps/map-${i}.${ext}`);
+        if(hit) break;
+      }
+      if(hit){ hits.push(hit); misses = 0; } else { misses++; }
+    }
+    return hits;
+  })();
+  Promise.all(probes).then(async manual=>{
+    found.push(...manual.filter(Boolean), ...(await auto));
+    if(found.length===0) return;
+    const box = document.getElementById("bgSlides");
+    found.forEach((src,i)=>{
+      const im = document.createElement("img");
+      im.src = src; im.alt = "";
+      if(i===0) im.classList.add("on");
+      box.appendChild(im);
+    });
+    document.body.classList.add("has-bg");
+    if(found.length>1 && !matchMedia("(prefers-reduced-motion: reduce)").matches){
+      let cur = 0;
+      setInterval(()=>{
+        const imgs = box.querySelectorAll("img");
+        imgs[cur].classList.remove("on");
+        cur = (cur+1) % imgs.length;
+        imgs[cur].classList.add("on");
+      }, MAP_INTERVAL);
+    }
+  });
 }
 
 /* ===================================================== I18N ANWENDEN */
@@ -1044,8 +1233,10 @@ function applyI18n(){
   document.getElementById("boardHead").innerHTML = t("boardCols").map(c=>`<span>${c}</span>`).join("");
   renderBench();
   buildLibrary();
+  renderGallery();
   if(currentStrat) renderStratCard(currentStrat);
   if(currentHero && document.getElementById("sheet").classList.contains("show")) fillSheet(currentHero);
+  if(currentDetail) openHeroSheet(currentDetail);
   renderBoard();
   if(guessOver && target) renderBanner();
 }
@@ -1299,14 +1490,7 @@ function renderStratCard(s){
   document.getElementById("stratDesc").innerHTML = s.d[LANG];
   const hbox = document.getElementById("stratHeroes");
   hbox.innerHTML = "";
-  if(s.h){
-    s.h.forEach(name=>{
-      const tag = document.createElement("span");
-      tag.className = "hero-tag";
-      tag.textContent = name;
-      hbox.appendChild(tag);
-    });
-  }
+  if(s.h) s.h.forEach(name=> hbox.appendChild(heroTagNode(name)));
 }
 
 /* ===================================================== BIBLIOTHEK */
@@ -1317,11 +1501,104 @@ function buildLibrary(){
     const card = document.createElement("article");
     card.className = "lib-card frame";
     card.style.animationDelay = (i*0.03)+"s";
-    let heroes = "";
-    if(s.h) heroes = '<div class="strat-heroes">' + s.h.map(n=>`<span class="hero-tag">${n}</span>`).join("") + '</div>';
-    card.innerHTML = `<span class="lib-num">${i+1}</span><h3 class="display">${s.t[LANG]}</h3><p>${s.d[LANG]}</p>${heroes}`;
+    card.innerHTML = `<span class="lib-num">${i+1}</span><h3 class="display">${s.t[LANG]}</h3><p>${s.d[LANG]}</p>`;
+    if(s.h){
+      const box = document.createElement("div");
+      box.className = "strat-heroes";
+      s.h.forEach(name=> box.appendChild(heroTagNode(name)));
+      card.appendChild(box);
+    }
     list.appendChild(card);
   });
+}
+
+/* ===================================================== GALERIE */
+let galFilter = "all";
+let currentDetail = null;
+function renderGallery(){
+  const filterBox = document.getElementById("galFilter");
+  filterBox.innerHTML = "";
+  const opts = [["all", t("filterAll")], ...Object.entries(ROLES).map(([k,r])=>[k, r.name])];
+  opts.forEach(([key,label])=>{
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.classList.toggle("on", galFilter===key);
+    b.onclick = ()=>{ galFilter = key; sndClick(); renderGallery(); };
+    filterBox.appendChild(b);
+  });
+
+  const heroes = HEROES
+    .map((h,i)=>({...h, idx:i}))
+    .filter(h=> galFilter==="all" || h.r===galFilter)
+    .sort((a,b)=>a.n.localeCompare(b.n));
+  document.getElementById("galCount").textContent = t("galCount")(heroes.length);
+
+  const grid = document.getElementById("galleryGrid");
+  grid.innerHTML = "";
+  heroes.forEach((h,i)=>{
+    const card = document.createElement("button");
+    card.className = "gal-card";
+    card.style.animationDelay = Math.min(i*0.015, .4)+"s";
+    card.style.setProperty("--rc", ROLES[h.r].color);
+    card.appendChild(avatarNode(h,"fill"));
+    const nm = document.createElement("span");
+    nm.className = "name";
+    nm.textContent = h.n;
+    card.appendChild(nm);
+    const rl = document.createElement("span");
+    rl.className = "role";
+    rl.textContent = ROLES[h.r].name;
+    card.appendChild(rl);
+    card.onclick = ()=>openHeroSheet(h);
+    grid.appendChild(card);
+  });
+}
+function openHeroSheet(hero){
+  currentDetail = hero;
+  const role = ROLES[hero.r];
+  const badge = document.getElementById("dtRole");
+  badge.textContent = role.name;
+  badge.style.setProperty("--rb", role.color);
+  setAvatar(document.getElementById("dtAvatar"), hero);
+  document.getElementById("dtName").textContent = hero.n;
+  document.getElementById("dtInfo").innerHTML = hero.i[LANG];
+
+  // Steckbrief: gleiche Kategorien wie bei Guess the Character
+  const cols = t("boardCols"); // [Held, Geschlecht, Spezies, Zugehörigkeit, Rolle, Reichweite, HP]
+  const rows = [
+    [cols[1], attr("g", hero.g)],
+    [cols[2], attr("sp", hero.sp)],
+    [cols[3], hero.af.map(a=>attr("af",a)).join(", ")],
+    [cols[4], role.name],
+    [cols[5], attr("rg", hero.rg)],
+    [cols[6], "~"+hero.hp]
+  ];
+  document.getElementById("dtStats").innerHTML =
+    rows.map(([k,v])=>`<div class="stat-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
+
+  // In welchen Strats taucht der Held namentlich auf?
+  const feat = STRATS.filter(s=> s.h && s.h.includes(hero.n));
+  const wrap = document.getElementById("dtFeaturedWrap");
+  const box = document.getElementById("dtFeatured");
+  box.innerHTML = "";
+  wrap.style.display = feat.length ? "" : "none";
+  feat.forEach(s=>{
+    const tag = document.createElement("span");
+    tag.className = "hero-tag";
+    tag.textContent = s.t[LANG];
+    box.appendChild(tag);
+  });
+
+  document.getElementById("backdrop").classList.add("show");
+  document.getElementById("heroSheet").classList.add("show");
+  sndClick();
+}
+function closeHeroSheet(){
+  currentDetail = null;
+  document.getElementById("heroSheet").classList.remove("show");
+  if(!document.getElementById("sheet").classList.contains("show")){
+    document.getElementById("backdrop").classList.remove("show");
+  }
 }
 
 /* ===================================================== GUESS THE CHARACTER */
@@ -1475,6 +1752,7 @@ function endGuess(won){
 
 /* ===================================================== INIT */
 applyI18n();
+initMapBackground();
 window.addEventListener("resize", ()=>{ if(document.getElementById("wheelScreen").classList.contains("active")) drawWheel(); });
 drawWheel();
 </script>
