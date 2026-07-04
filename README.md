@@ -11,10 +11,6 @@ Fan-Tool für **Marvel Rivals** (DE/EN): Glücksrad für zufällige Charaktere, 
 - **Guess the Character** – ein geheimer Held wird gezogen; über Geschlecht, Spezies, Zugehörigkeit, Rolle, Reichweite und HP rätst du dich heran (Grün = richtig, Gelb = teilweise/nah dran, Rot = falsch).
 - Zweisprachig (Deutsch/Englisch, umschaltbar oben rechts), Sound-Effekte (abschaltbar), responsiv für Desktop und Handy.
 
-## Nutzung
-
-Einfach `index.html` im Browser öffnen – keine Installation, kein Build, keine Abhängigkeiten.
-
 ## Charakterbilder einfügen
 
 Die Seite sucht Bilder automatisch im Ordner `img/` anhand des Heldennamens. Fehlt ein Bild, wird stattdessen eine Initialen-Kachel in der Rollenfarbe angezeigt – die Seite funktioniert also auch ganz ohne Bilder.
