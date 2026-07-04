@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rivals Roulette</title>
+<style>
+  :root{
+    --bg:#0b0920;
+    --panel:rgba(23,18,56,.88);
+    --line:rgba(255,255,255,.16);
+    --ink:#f5f3ff;
+    --muted:#a9a3cf;
+    --gold:#ffd542;
+    --van:#ffb020;
+    --duel:#ff4d6b;
+    --strat:#2fd6c3;
+    --flex:#a06bff;
+    --ok:#37c268;
+    --part:#e5b63a;
+    --no:#d5455a;
+    --cut:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    --slash:polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1.5px 1.5px at 18% 22%, rgba(255,255,255,.5), transparent 60%),
+      radial-gradient(1px 1px at 72% 12%, rgba(255,255,255,.4), transparent 60%),
+      radial-gradient(1.5px 1.5px at 88% 64%, rgba(255,255,255,.35), transparent 60%),
+      radial-gradient(1px 1px at 34% 82%, rgba(255,255,255,.35), transparent 60%),
+      radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,.28), transparent 60%),
+      linear-gradient(115deg, transparent 42%, rgba(160,107,255,.08) 46%, rgba(160,107,255,.08) 52%, transparent 56%),
+      linear-gradient(115deg, transparent 60%, rgba(47,214,195,.06) 66%, rgba(47,214,195,.06) 70%, transparent 76%),
+      radial-gradient(1100px 640px at 80% -10%, rgba(122,72,255,.32), transparent 62%),
+      radial-gradient(900px 560px at -12% 34%, rgba(48,36,120,.5), transparent 60%),
+      radial-gradient(980px 600px at 55% 115%, rgba(255,77,107,.14), transparent 60%),
+      linear-gradient(180deg,#141031, var(--bg) 55%);
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    overflow-x:hidden;min-height:100dvh;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:16px 16px calc(28px + env(safe-area-inset-bottom));min-height:100dvh;display:flex;flex-direction:column}
+
+  .display{
+    font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;
+    font-weight:900;font-style:italic;
+    text-transform:uppercase;letter-spacing:-.015em;line-height:.97;
+  }
+
+  .frame{position:relative;background:var(--panel);border:1px solid var(--line);clip-path:var(--cut)}
+  .frame::before{content:"";position:absolute;top:0;left:0;width:34px;height:3px;background:var(--gold)}
+  .frame::after{content:"";position:absolute;bottom:0;right:0;width:34px;height:3px;background:var(--gold)}
+
+  /* ---------- Screens ---------- */
+  .screen{display:none;flex-direction:column;flex:1;animation:screenIn .34s cubic-bezier(.22,.9,.3,1) both}
+  .screen.active{display:flex}
+  @keyframes screenIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+  /* ---------- Topbar ---------- */
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;min-height:42px}
+  .icon-btn{
+    background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);
+    width:42px;height:42px;clip-path:var(--cut);font-size:18px;cursor:pointer;
+    display:grid;place-items:center;transition:background .15s, transform .12s;
+    font-family:inherit;font-weight:800;
+  }
+  .icon-btn:active{transform:scale(.92);background:rgba(255,255,255,.12)}
+  .icon-btn.lang{font-size:12px;letter-spacing:.08em}
+  .screen-title{font-size:20px;flex:1}
+  .screen-title .tint{color:var(--tint,var(--gold))}
+  .top-right{margin-left:auto;display:flex;gap:10px}
+
+  /* ---------- Home ---------- */
+  #home .hero{margin:16px 0 4px}
+  .kicker{
+    display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--bg);background:var(--gold);padding:6px 14px;clip-path:var(--slash);margin-bottom:14px;
+  }
+  .logo{font-size:min(14.5vw,60px)}
+  .logo .l2{display:block;background:linear-gradient(92deg,var(--gold),#ff9d3c 60%,var(--duel));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 3px 0 rgba(0,0,0,.45))}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin-top:12px;max-width:40ch}
+
+  .menu{display:flex;flex-direction:column;gap:14px;margin-top:26px}
+  .menu-card{
+    text-align:left;cursor:pointer;color:var(--ink);font-family:inherit;
+    padding:18px 16px;overflow:hidden;transition:transform .15s ease;
+    animation:cardIn .45s cubic-bezier(.22,.9,.3,1) both;
+  }
+  .menu-card:nth-child(2){animation-delay:.06s}
+  .menu-card:nth-child(3){animation-delay:.12s}
+  @keyframes cardIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .menu-card:hover{transform:translateY(-3px)}
+  .menu-card:active{transform:scale(.975)}
+  .menu-card .beam{
+    position:absolute;inset:-40% auto -40% -16%;width:34%;
+    background:linear-gradient(180deg,var(--c1),transparent 85%);
+    transform:skewX(-18deg);opacity:.22;pointer-events:none;transition:opacity .2s;
+  }
+  .menu-card:hover .beam{opacity:.36}
+  .menu-card .glyph{
+    position:relative;width:50px;height:50px;clip-path:var(--cut);margin-bottom:12px;
+    background:linear-gradient(140deg,var(--c1),rgba(0,0,0,.35));
+    display:grid;place-items:center;font-size:24px;
+  }
+  .menu-card h2{position:relative;font-size:21px;margin-bottom:5px}
+  .menu-card h2 span{color:var(--c1)}
+  .menu-card p{position:relative;color:var(--muted);font-size:13px;line-height:1.5}
+  .card-wheel{--c1:var(--gold)}
+  .card-strat{--c1:var(--strat)}
+  .card-guess{--c1:var(--duel)}
+
+  .roster-note{margin-top:auto;padding-top:24px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:.05em;line-height:1.7}
+
+  /* ---------- Wheel-Layout ---------- */
+  .wheel-layout{display:flex;flex-direction:column}
+  .mode-toggle{display:flex;border:1px solid var(--line);clip-path:var(--cut);overflow:hidden;margin-bottom:6px;background:rgba(255,255,255,.04)}
+  .mode-toggle button{
+    flex:1;border:none;background:transparent;padding:11px 8px;cursor:pointer;color:var(--muted);
+    font-family:inherit;font-weight:800;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
+    transition:background .15s,color .15s;
+  }
+  .mode-toggle button.on{background:var(--gold);color:var(--bg)}
+  .mode-hint{color:var(--muted);font-size:11.5px;text-align:center;margin-bottom:10px;min-height:15px}
+
+  .legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:2px 0 12px}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .dot{width:9px;height:9px;transform:rotate(45deg)}
+
+  .wheel-stage{position:relative;display:grid;place-items:center;margin:2px 0 16px}
+  .wheel-glow{
+    position:absolute;width:var(--wheel-size,min(86vw,400px));aspect-ratio:1;border-radius:50%;
+    background:conic-gradient(var(--gold),var(--duel),var(--flex),var(--strat),var(--gold));
+    filter:blur(30px);opacity:.28;animation:pulse 4.5s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.22;transform:scale(.97)}50%{opacity:.36;transform:scale(1.01)}}
+  canvas#wheel{position:relative;width:var(--wheel-size,min(86vw,400px));height:auto;display:block;border-radius:50%}
+  .pointer{
+    position:absolute;top:-7px;left:50%;transform:translateX(-50%);z-index:3;
+    width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;
+    border-top:25px solid var(--gold);
+    filter:drop-shadow(0 3px 5px rgba(0,0,0,.7));transform-origin:50% 0;
+  }
+  .pointer.wobble{animation:wobble .5s ease-out}
+  @keyframes wobble{0%{transform:translateX(-50%) rotate(0)}25%{transform:translateX(-50%) rotate(-9deg)}55%{transform:translateX(-50%) rotate(6deg)}100%{transform:translateX(-50%) rotate(0)}}
+  .hub{
+    position:absolute;z-index:2;width:76px;height:76px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%,#332a66,#131028 70%);
+    border:2px solid var(--line);display:grid;place-items:center;text-align:center;
+    color:var(--muted);font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+    pointer-events:none;
+  }
+  .hub b{color:var(--gold);font-size:19px;letter-spacing:0;font-style:italic}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    border:none;cursor:pointer;color:var(--bg);
+    font-family:inherit;font-weight:900;font-style:italic;font-size:15px;letter-spacing:.06em;text-transform:uppercase;
+    padding:15px 26px;clip-path:var(--slash);
+    background:linear-gradient(95deg,var(--gold),#ffb43c);
+    transition:transform .13s ease, filter .13s ease;
+    -webkit-user-select:none;user-select:none;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:scale(.96)}
+  .btn:disabled{filter:grayscale(.7) brightness(.55);cursor:default}
+  .btn.big{width:100%;padding:17px;font-size:16.5px}
+  .btn.teal{background:linear-gradient(95deg,var(--strat),#3fa4ff)}
+  .btn.red{background:linear-gradient(95deg,var(--duel),#ff7a4d)}
+  .btn.ghost{
+    background:rgba(255,255,255,.06);color:var(--ink);border:1px solid var(--line);
+    clip-path:var(--cut);font-style:normal;font-size:12.5px;padding:12px 14px;font-weight:700;
+  }
+  .btn:focus-visible,.icon-btn:focus-visible,.menu-card:focus-visible,.mode-toggle button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  .actions{display:flex;flex-direction:column;gap:10px}
+  .actions-row{display:flex;gap:10px}
+  .actions-row .btn{flex:1}
+
+  /* ---------- Avatar ---------- */
+  .avatar{
+    flex:none;width:58px;height:58px;clip-path:var(--cut);
+    background:linear-gradient(145deg,var(--ac,var(--gold)) 0%, rgba(0,0,0,.55) 130%);
+    display:grid;place-items:center;overflow:hidden;position:relative;
+  }
+  .avatar span{
+    font-family:"Arial Black",Arial,sans-serif;font-weight:900;font-style:italic;
+    font-size:21px;color:rgba(10,8,26,.9);letter-spacing:-.03em;
+  }
+  .avatar img{width:100%;height:100%;object-fit:cover;object-position:top center}
+  .avatar.sm{width:42px;height:42px}
+  .avatar.sm span{font-size:15px}
+  .avatar.lg{width:84px;height:84px}
+  .avatar.lg span{font-size:30px}
+
+  /* ---------- Ausgelassen ---------- */
+  .bench{margin-top:16px}
+  .bench-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .bench-head h3{font-size:10.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+  .bench-head button{background:none;border:none;color:var(--gold);font-family:inherit;font-weight:800;font-size:11.5px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;padding:4px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{
+    background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--ink);
+    font-family:inherit;font-size:12px;padding:6px 10px;clip-path:var(--cut);cursor:pointer;
+    display:flex;align-items:center;gap:6px;animation:chipIn .22s ease both;
+  }
+  @keyframes chipIn{from{opacity:0;transform:scale(.8)}to{opacity:1}}
+  .chip i{font-style:normal;color:var(--duel);font-size:11px;font-weight:900}
+  .bench-empty{color:var(--muted);font-size:12.5px;line-height:1.5}
+
+  /* ---------- Result-Sheet ---------- */
+  .sheet-backdrop{
+    position:fixed;inset:0;background:rgba(5,4,16,.7);backdrop-filter:blur(4px);
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;
+  }
+  .sheet-backdrop.show{opacity:1;pointer-events:auto}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:21;
+    max-width:560px;margin:0 auto;
+    background:linear-gradient(180deg,#1d1745,#120e2c);
+    border:1px solid var(--line);border-bottom:none;
+    clip-path:polygon(0 22px, 22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+    padding:20px 22px calc(24px + env(safe-area-inset-bottom));
+    transform:translateY(110%);transition:transform .42s cubic-bezier(.2,1.1,.3,1);
+  }
+  .sheet.show{transform:none}
+  @media (min-width:900px){
+    .sheet{bottom:50%;transform:translateY(120vh);border-bottom:1px solid var(--line);
+      clip-path:polygon(0 22px, 22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px), calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px))}
+    .sheet.show{transform:translateY(50%)}
+  }
+  .grip{width:44px;height:4px;background:var(--line);margin:0 auto 16px}
+  .result-top{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+  .role-badge{
+    display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--bg);background:var(--rb,var(--gold));padding:5px 11px;clip-path:var(--slash);margin-bottom:8px;
+  }
+  .result-name{font-size:min(8.5vw,34px);
+    animation:nameIn .45s cubic-bezier(.2,1.2,.3,1) both .05s}
+  @keyframes nameIn{from{opacity:0;transform:translateY(12px) skewX(-8deg)}to{opacity:1;transform:skewX(0)}}
+  .result-info{color:var(--muted);font-size:14.5px;line-height:1.55;margin-bottom:18px}
+
+  /* ---------- StratRoulette ---------- */
+  .strat-stage{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding-bottom:8px;width:100%}
+  .strat-idle{text-align:center;color:var(--muted);font-size:14.5px;line-height:1.6}
+  .strat-idle .big-icon{font-size:52px;display:block;margin-bottom:12px;animation:float 3.2s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+  .shuffler{display:none;text-align:center;padding:32px 12px;border:1px dashed var(--line);clip-path:var(--cut);background:rgba(255,255,255,.03)}
+  .shuffler.show{display:block}
+  .shuffler .cycling{font-size:22px;color:var(--muted)}
+  .strat-card{display:none;padding:22px 18px}
+  .strat-card.show{display:block;animation:stratPop .45s cubic-bezier(.2,1.25,.3,1) both}
+  @keyframes stratPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+  .strat-tag{font-size:10px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:var(--strat);margin-bottom:10px}
+  .strat-title{font-size:min(7.5vw,29px);margin-bottom:10px}
+  .strat-desc{color:var(--muted);font-size:14.5px;line-height:1.6;margin-bottom:14px}
+  .strat-desc b{color:var(--ink)}
+  .strat-heroes{display:flex;flex-wrap:wrap;gap:7px}
+  .hero-tag{font-size:11.5px;padding:4px 9px;border:1px solid var(--line);clip-path:var(--cut);background:rgba(255,255,255,.04);color:var(--ink)}
+
+  /* ---------- Bibliothek ---------- */
+  .lib-intro{color:var(--muted);font-size:13.5px;line-height:1.55;margin-bottom:16px}
+  .lib-list{display:flex;flex-direction:column;gap:12px;padding-bottom:10px}
+  .lib-card{padding:16px;animation:cardIn .4s ease both}
+  .lib-num{
+    display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 6px;
+    background:var(--gold);color:var(--bg);clip-path:var(--slash);
+    font-weight:900;font-style:italic;font-size:12px;margin-bottom:8px;
+  }
+  .lib-card h3{font-size:17px;margin-bottom:6px}
+  .lib-card p{color:var(--muted);font-size:13.5px;line-height:1.55}
+  .lib-card p b{color:var(--ink)}
+  .lib-card .strat-heroes{margin-top:10px}
+
+  /* ---------- Guess ---------- */
+  .guess-status{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .tries{padding:10px 14px;font-size:12px;color:var(--muted);flex:1;min-width:120px}
+  .tries b{color:var(--gold);font-size:16px;font-style:italic;font-family:"Arial Black",Arial,sans-serif}
+  .guess-search{position:relative;margin-bottom:14px;z-index:5}
+  .guess-search input{
+    width:100%;padding:15px 16px;background:rgba(255,255,255,.05);
+    border:1px solid var(--line);clip-path:var(--cut);
+    color:var(--ink);font-family:inherit;font-size:15px;outline:none;
+  }
+  .guess-search input:focus{border-color:var(--gold);background:rgba(255,255,255,.08)}
+  .guess-search input::placeholder{color:var(--muted)}
+  .suggestions{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:6;
+    background:#1c1642;border:1px solid var(--line);clip-path:var(--cut);
+    max-height:min(50vh, 420px);overflow-y:auto;display:none;
+    overscroll-behavior:contain;
+  }
+  .suggestions.show{display:block}
+  .sugg{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    background:none;border:none;border-bottom:1px solid rgba(255,255,255,.07);
+    padding:8px 12px;color:var(--ink);font-family:inherit;font-size:14px;cursor:pointer;
+  }
+  .sugg:hover,.sugg:focus{background:rgba(255,213,66,.12)}
+  .sugg .role-mini{margin-left:auto;font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+  .guess-banner{display:none;padding:18px 16px;margin-bottom:14px;text-align:center}
+  .guess-banner.show{display:block;animation:stratPop .45s cubic-bezier(.2,1.25,.3,1) both}
+  .guess-banner h3{font-size:22px;margin:10px 0 6px}
+  .guess-banner h3 span{color:var(--gold)}
+  .guess-banner p{color:var(--muted);font-size:13.5px;line-height:1.55;margin-bottom:14px}
+  .guess-banner .avatar{margin:0 auto}
+
+  .guess-legend{display:flex;gap:12px;flex-wrap:wrap;margin:2px 0 12px}
+  .guess-legend span{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted)}
+  .guess-legend .sq{width:11px;height:11px;clip-path:var(--cut)}
+
+  .board-scroll{overflow-x:auto;padding-bottom:14px;-webkit-overflow-scrolling:touch}
+  .board{min-width:604px}
+  .board-head,.board-row{
+    display:grid;grid-template-columns:132px 72px 90px 110px 84px 92px 72px;gap:6px;margin-bottom:6px;
+  }
+  .board-head span{
+    font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    border-bottom:2px solid var(--line);padding:0 4px 6px;
+  }
+  .cell{
+    min-height:58px;display:flex;align-items:center;justify-content:center;text-align:center;
+    font-size:11.5px;font-weight:700;line-height:1.25;padding:4px 5px;
+    clip-path:var(--cut);color:#0d0a20;
+    animation:flip .4s ease both;
+  }
+  .board-row .cell:nth-child(2){animation-delay:.08s}
+  .board-row .cell:nth-child(3){animation-delay:.16s}
+  .board-row .cell:nth-child(4){animation-delay:.24s}
+  .board-row .cell:nth-child(5){animation-delay:.32s}
+  .board-row .cell:nth-child(6){animation-delay:.40s}
+  .board-row .cell:nth-child(7){animation-delay:.48s}
+  @keyframes flip{from{opacity:0;transform:rotateX(80deg)}to{opacity:1;transform:none}}
+  .cell.hero{
+    background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--ink);
+    justify-content:flex-start;gap:8px;text-align:left;font-size:11px;
+  }
+  .cell.ok{background:var(--ok)}
+  .cell.part{background:var(--part)}
+  .cell.no{background:var(--no);color:#fff}
+  .cell .arrow{font-size:14px;margin-left:3px}
+  .guess-hint{color:var(--muted);font-size:11.5px;line-height:1.6;margin-top:2px}
+
+  /* =============================================
+     DESKTOP-LAYOUT (Browser-first)
+     ============================================= */
+  @media (min-width:900px){
+    .wrap{max-width:1100px;padding:32px 40px 48px}
+    .screen-title{font-size:26px}
+
+    /* Home */
+    #home .hero{margin:34px 0 10px;text-align:center}
+    #home .sub{margin:14px auto 0;max-width:52ch}
+    .logo{font-size:76px}
+    .logo .l2{display:inline;margin-left:14px}
+    .menu{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px}
+    .menu-card{padding:26px 22px}
+    .menu-card h2{font-size:23px}
+    .menu-card p{font-size:13.5px}
+
+    /* Wheel: zweispaltig */
+    .wheel-layout{display:grid;grid-template-columns:auto 1fr;gap:44px;align-items:start}
+    .wheel-left{--wheel-size:440px}
+    .wheel-right{display:flex;flex-direction:column;padding-top:6px}
+    .legend{justify-content:flex-start;margin-bottom:16px}
+    .mode-hint{text-align:left}
+    .bench{margin-top:22px}
+
+    /* Strat */
+    .strat-stage{max-width:660px;margin:0 auto;justify-content:flex-start;padding-top:26px}
+
+    /* Bibliothek */
+    .lib-list{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+    /* Guess */
+    .board{min-width:0}
+    .board-head,.board-row{grid-template-columns:1.7fr .9fr 1.05fr 1.3fr 1fr 1.05fr .8fr}
+    .cell{font-size:12.5px}
+    .cell.hero{font-size:12.5px}
+    .guess-hint .mobile-only{display:none}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HOME ============ -->
+  <section class="screen active" id="home">
+    <div class="topbar" style="justify-content:flex-end;margin-bottom:0">
+      <div class="top-right">
+        <button class="icon-btn lang lang-btn" onclick="toggleLang()">EN</button>
+        <button class="icon-btn sound-btn" onclick="toggleSound()" aria-label="Sound">🔊</button>
+      </div>
+    </div>
+    <div class="hero">
+      <div class="kicker">Marvel Rivals Tool</div>
+      <h1 class="display logo">Rivals<span class="l2">Roulette</span></h1>
+      <p class="sub" data-i18n="homeSub"></p>
+    </div>
+
+    <div class="menu">
+      <button class="menu-card frame card-wheel" onclick="showScreen('wheelScreen')">
+        <span class="beam"></span>
+        <span class="glyph">🎡</span>
+        <h2 class="display" data-i18n="menuWheelTitle"></h2>
+        <p data-i18n="menuWheelDesc"></p>
+      </button>
+      <button class="menu-card frame card-strat" onclick="showScreen('stratScreen')">
+        <span class="beam"></span>
+        <span class="glyph">🎲</span>
+        <h2 class="display" data-i18n="menuStratTitle"></h2>
+        <p data-i18n="menuStratDesc"></p>
+      </button>
+      <button class="menu-card frame card-guess" onclick="showScreen('guessScreen'); startGuess(false)">
+        <span class="beam"></span>
+        <span class="glyph">🕵️</span>
+        <h2 class="display" data-i18n="menuGuessTitle"></h2>
+        <p data-i18n="menuGuessDesc"></p>
+      </button>
+    </div>
+
+    <div class="roster-note" id="rosterNote"></div>
+  </section>
+
+  <!-- ============ WHEEL ============ -->
+  <section class="screen" id="wheelScreen" style="--tint:var(--gold)">
+    <div class="topbar">
+      <button class="icon-btn" onclick="showScreen('home')" aria-label="Back">‹</button>
+      <h2 class="display screen-title" data-i18n="wheelTitle"></h2>
+      <div class="top-right">
+        <button class="icon-btn lang lang-btn" onclick="toggleLang()">EN</button>
+        <button class="icon-btn sound-btn" onclick="toggleSound()" aria-label="Sound">🔊</button>
+      </div>
+    </div>
+
+    <div class="wheel-layout">
+      <div class="wheel-left">
+        <div class="legend">
+          <span><span class="dot" style="background:var(--van)"></span>Vanguard</span>
+          <span><span class="dot" style="background:var(--duel)"></span>Duelist</span>
+          <span><span class="dot" style="background:var(--strat)"></span>Strategist</span>
+          <span><span class="dot" style="background:var(--flex)"></span>Multi</span>
+        </div>
+        <div class="wheel-stage">
+          <div class="wheel-glow"></div>
+          <canvas id="wheel"></canvas>
+          <div class="pointer" id="pointer"></div>
+          <div class="hub"><span data-i18n="hubLabel"></span><b id="hubCount">51</b></div>
+        </div>
+      </div>
+
+      <div class="wheel-right">
+        <div class="mode-toggle" role="group" aria-label="Mode">
+          <button id="modeSimple" class="on" onclick="setMode('simple')" data-i18n="modeSimple"></button>
+          <button id="modeMixed" onclick="setMode('mixed')" data-i18n="modeMixed"></button>
+        </div>
+        <div class="mode-hint" id="modeHint"></div>
+
+        <div class="actions">
+          <button class="btn big" id="spinBtn" onclick="spin()" data-i18n="spinBtn"></button>
+        </div>
+
+        <div class="bench">
+          <div class="bench-head">
+            <h3 data-i18n="benchTitle"></h3>
+            <button id="resetBtn" onclick="resetBench()" hidden data-i18n="resetBtn"></button>
+          </div>
+          <div class="chips" id="benchChips"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STRAT ============ -->
+  <section class="screen" id="stratScreen" style="--tint:var(--strat)">
+    <div class="topbar">
+      <button class="icon-btn" onclick="showScreen('home')" aria-label="Back">‹</button>
+      <h2 class="display screen-title" data-i18n="stratTitle"></h2>
+      <div class="top-right">
+        <button class="icon-btn lang lang-btn" onclick="toggleLang()">EN</button>
+        <button class="icon-btn sound-btn" onclick="toggleSound()" aria-label="Sound">🔊</button>
+      </div>
+    </div>
+
+    <div class="strat-stage">
+      <div class="strat-idle" id="stratIdle">
+        <span class="big-icon">🎲</span>
+        <span data-i18n="stratIdle"></span>
+      </div>
+
+      <div class="shuffler" id="shuffler">
+        <div class="display cycling" id="cyclingText">…</div>
+      </div>
+
+      <div class="strat-card frame" id="stratCard">
+        <div class="strat-tag" data-i18n="stratTag"></div>
+        <h3 class="display strat-title" id="stratTitle2"></h3>
+        <p class="strat-desc" id="stratDesc"></p>
+        <div class="strat-heroes" id="stratHeroes"></div>
+      </div>
+
+      <button class="btn big teal" id="stratBtn" onclick="rollStrat()"></button>
+      <button class="btn ghost" onclick="showScreen('libScreen')" data-i18n="libBtn"></button>
+    </div>
+  </section>
+
+  <!-- ============ BIBLIOTHEK ============ -->
+  <section class="screen" id="libScreen" style="--tint:var(--flex)">
+    <div class="topbar">
+      <button class="icon-btn" onclick="showScreen('stratScreen')" aria-label="Back">‹</button>
+      <h2 class="display screen-title" data-i18n="libTitle"></h2>
+      <div class="top-right">
+        <button class="icon-btn lang lang-btn" onclick="toggleLang()">EN</button>
+        <button class="icon-btn sound-btn" onclick="toggleSound()" aria-label="Sound">🔊</button>
+      </div>
+    </div>
+    <p class="lib-intro" id="libIntro"></p>
+    <div class="lib-list" id="libList"></div>
+  </section>
+
+  <!-- ============ GUESS ============ -->
+  <section class="screen" id="guessScreen" style="--tint:var(--duel)">
+    <div class="topbar">
+      <button class="icon-btn" onclick="showScreen('home')" aria-label="Back">‹</button>
+      <h2 class="display screen-title" data-i18n="guessTitle"></h2>
+      <div class="top-right">
+        <button class="icon-btn lang lang-btn" onclick="toggleLang()">EN</button>
+        <button class="icon-btn sound-btn" onclick="toggleSound()" aria-label="Sound">🔊</button>
+      </div>
+    </div>
+
+    <div class="guess-status">
+      <div class="tries frame"><span data-i18n="tries"></span> <b id="tryCount">0</b></div>
+      <button class="btn ghost" onclick="startGuess(true)" data-i18n="restartBtn"></button>
+      <button class="btn ghost" id="giveUpBtn" onclick="giveUp()" data-i18n="giveUpBtn"></button>
+    </div>
+
+    <div class="guess-search" id="guessSearch">
+      <input type="text" id="guessInput" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="suggestions" id="suggBox"></div>
+    </div>
+
+    <div class="guess-banner frame" id="guessBanner">
+      <div class="avatar lg" id="bannerAvatar"><span>?</span></div>
+      <h3 class="display" id="bannerTitle"></h3>
+      <p id="bannerText"></p>
+      <button class="btn red" onclick="startGuess(true)" data-i18n="playAgainBtn"></button>
+    </div>
+
+    <div class="guess-legend">
+      <span><span class="sq" style="background:var(--ok)"></span><span data-i18n="lgOk"></span></span>
+      <span><span class="sq" style="background:var(--part)"></span><span data-i18n="lgPart"></span></span>
+      <span><span class="sq" style="background:var(--no)"></span><span data-i18n="lgNo"></span></span>
+      <span data-i18n="lgArrows"></span>
+    </div>
+
+    <div class="board-scroll">
+      <div class="board">
+        <div class="board-head" id="boardHead"></div>
+        <div id="boardRows"></div>
+      </div>
+    </div>
+    <p class="guess-hint" id="guessHint"></p>
+  </section>
+</div>
+
+<!-- ============ RESULT SHEET ============ -->
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="resultName">
+  <div class="grip"></div>
+  <div class="result-top">
+    <div class="avatar lg" id="resultAvatar"><span></span></div>
+    <div>
+      <span class="role-badge" id="resultRole"></span>
+      <h3 class="display result-name" id="resultName"></h3>
+    </div>
+  </div>
+  <p class="result-info" id="resultInfo"></p>
+  <div class="actions">
+    <div class="actions-row">
+      <button class="btn ghost" onclick="benchCurrent()" data-i18n="skipBtn"></button>
+      <button class="btn ghost" onclick="closeSheet()" data-i18n="keepBtn"></button>
+    </div>
+    <button class="btn big" onclick="closeSheet(); spin()" data-i18n="spinAgainBtn"></button>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   SPRACHEN / LANGUAGES
+   ===================================================== */
+const UI = {
+  de:{
+    homeSub:"Kein Plan, wen du spielen sollst? Lass das Schicksal entscheiden – oder beweise, dass du das Roster in- und auswendig kennst.",
+    menuWheelTitle:'Random <span>Charakter</span>',
+    menuWheelDesc:"Alle Helden im Glücksrad – nach Rollen sortiert oder komplett gemischt. Ungeliebte Helden lassen sich fürs nächste Drehen auslassen.",
+    menuStratTitle:'Strat<span>Roulette</span>',
+    menuStratDesc:"Eine zufällige Team-Strategie für die nächste Runde – plus Bibliothek mit allen Strats zum Nachlesen.",
+    menuGuessTitle:'Guess the <span>Character</span>',
+    menuGuessDesc:"Ein geheimer Held wird gewählt. Rate dich über Geschlecht, Spezies, Rolle & Co. heran – Grün, Gelb, Rot zeigen dir den Weg.",
+    rosterNote:(h,s)=>`Roster: ${h} Helden · Stand Season 8.5 (Juni 2026) · ${s} Strats<br>Fan-Projekt, nicht mit NetEase/Marvel verbunden.`,
+    wheelTitle:'Random <span class="tint">Charakter</span>',
+    hubLabel:"Im Rad", modeSimple:"Einfach", modeMixed:"Gemischt",
+    hintSimple:"Helden nach Rollen gruppiert", hintMixed:"Alle Helden wild durchgemischt",
+    spinBtn:"Drehen", benchTitle:"Ausgelassen", resetBtn:"Zurücksetzen",
+    benchEmpty:"Noch niemand ausgelassen. Tippe nach dem Drehen auf „Auslassen", // + quote fix below
+    benchEmptyFull:'Noch niemand ausgelassen. Tippe nach dem Drehen auf „Auslassen“, um einen Helden vorübergehend rauszunehmen.',
+    unbenchTip:"Wieder ins Rad aufnehmen",
+    skipBtn:"Auslassen", keepBtn:"Behalten", spinAgainBtn:"Nochmal drehen",
+    stratTitle:'Strat<span class="tint">Roulette</span>',
+    stratIdle:"Eure nächste Runde wird… interessant.<br>Startet das Roulette und haltet euch dran – egal, was kommt.",
+    stratTag:"Eure Strat für diese Runde",
+    stratStart:"StratRoulette starten", stratAgain:"Neue Strat ziehen",
+    libBtn:"📖 Alle Strats ansehen",
+    libTitle:'Strat-<span class="tint">Bibliothek</span>',
+    libIntro:(s)=>`Alle ${s} Strats im Überblick – zum Vorbereiten, Diskutieren oder gezielten Aussuchen. Das Roulette zieht zufällig aus genau dieser Liste.`,
+    guessTitle:'Guess the <span class="tint">Character</span>',
+    tries:"Versuche:", restartBtn:"Neu starten", giveUpBtn:"Aufgeben",
+    searchPh:"Heldennamen eingeben…",
+    lgOk:"Richtig", lgPart:"Teilweise / nah dran", lgNo:"Falsch",
+    lgArrows:"↑ / ↓ = gesuchter Wert ist höher / niedriger",
+    boardCols:["Held","Geschlecht","Spezies","Zugehörigkeit","Rolle","Reichweite","HP"],
+    guessHint:'HP-Werte sind ca.-Angaben (Stand Season 8.5).<span class="mobile-only"> Tipp: Auf dem Handy kannst du die Tabelle seitlich wischen.</span>',
+    bannerWin:(n)=>`Gefunden: <span>${n}</span>!`,
+    bannerLose:(n)=>`Es war… <span>${n}</span>`,
+    bannerWinText:(t,i)=>`Stark – geknackt in <b>${t}</b> ${t===1?"Versuch":"Versuchen"}. ${i}`,
+    playAgainBtn:"Nochmal spielen"
+  },
+  en:{
+    homeSub:"No idea who to play? Let fate decide – or prove you know the roster inside out.",
+    menuWheelTitle:'Random <span>Character</span>',
+    menuWheelDesc:"Every hero on a spinning wheel – grouped by role or fully shuffled. Skip heroes you don't feel like playing for the next spin.",
+    menuStratTitle:'Strat<span>Roulette</span>',
+    menuStratDesc:"A random team strategy for your next match – plus a library with every strat to read up on.",
+    menuGuessTitle:'Guess the <span>Character</span>',
+    menuGuessDesc:"A secret hero is chosen. Narrow it down via gender, species, role & more – green, yellow and red show you the way.",
+    rosterNote:(h,s)=>`Roster: ${h} heroes · as of Season 8.5 (June 2026) · ${s} strats<br>Fan project, not affiliated with NetEase/Marvel.`,
+    wheelTitle:'Random <span class="tint">Character</span>',
+    hubLabel:"In wheel", modeSimple:"Simple", modeMixed:"Shuffled",
+    hintSimple:"Heroes grouped by role", hintMixed:"All heroes wildly shuffled",
+    spinBtn:"Spin", benchTitle:"Skipped", resetBtn:"Reset",
+    benchEmptyFull:'Nobody skipped yet. After a spin, tap "Skip" to temporarily remove a hero from the wheel.',
+    unbenchTip:"Put back into the wheel",
+    skipBtn:"Skip", keepBtn:"Keep", spinAgainBtn:"Spin again",
+    stratTitle:'Strat<span class="tint">Roulette</span>',
+    stratIdle:"Your next match is going to be… interesting.<br>Start the roulette and stick to whatever comes up.",
+    stratTag:"Your strat for this round",
+    stratStart:"Start StratRoulette", stratAgain:"Draw a new strat",
+    libBtn:"📖 Browse all strats",
+    libTitle:'Strat <span class="tint">Library</span>',
+    libIntro:(s)=>`All ${s} strats at a glance – to prepare, discuss or hand-pick. The roulette draws randomly from exactly this list.`,
+    guessTitle:'Guess the <span class="tint">Character</span>',
+    tries:"Tries:", restartBtn:"Restart", giveUpBtn:"Give up",
+    searchPh:"Type a hero name…",
+    lgOk:"Correct", lgPart:"Partial / close", lgNo:"Wrong",
+    lgArrows:"↑ / ↓ = target value is higher / lower",
+    boardCols:["Hero","Gender","Species","Affiliation","Role","Range","HP"],
+    guessHint:'HP values are approximate (as of Season 8.5).<span class="mobile-only"> Tip: on mobile you can swipe the table sideways.</span>',
+    bannerWin:(n)=>`Found: <span>${n}</span>!`,
+    bannerLose:(n)=>`It was… <span>${n}</span>`,
+    bannerWinText:(t,i)=>`Nice – cracked in <b>${t}</b> ${t===1?"try":"tries"}. ${i}`,
+    playAgainBtn:"Play again"
+  }
+};
+
+/* Attribut-Übersetzungen für Guess */
+const ATTR = {
+  g:{ m:{de:"Männlich",en:"Male"}, f:{de:"Weiblich",en:"Female"}, duo:{de:"Duo",en:"Duo"}, none:{de:"Keins",en:"None"} },
+  sp:{ human:{de:"Mensch",en:"Human"}, mutant:{de:"Mutant",en:"Mutant"}, god:{de:"Gott",en:"God"},
+       animal:{de:"Tier",en:"Animal"}, robot:{de:"Roboter",en:"Robot"}, symbiote:{de:"Symbiont",en:"Symbiote"},
+       cosmic:{de:"Kosmisch",en:"Cosmic"}, atlantean:{de:"Atlanter",en:"Atlantean"}, dhampir:{de:"Halbvampir",en:"Dhampir"},
+       kumiho:{de:"Kumiho",en:"Kumiho"}, alien:{de:"Alien",en:"Alien"} },
+  af:{ avengers:{de:"Avengers",en:"Avengers"}, xmen:{de:"X-Men",en:"X-Men"}, guardians:{de:"Guardians",en:"Guardians"},
+       f4:{de:"Fantastic Four",en:"Fantastic Four"}, spider:{de:"Spider-Verse",en:"Spider-Verse"},
+       asgard:{de:"Asgard",en:"Asgard"}, shield:{de:"S.H.I.E.L.D.",en:"S.H.I.E.L.D."}, none:{de:"Keine",en:"None"} },
+  rg:{ melee:{de:"Nahkampf",en:"Melee"}, ranged:{de:"Fernkampf",en:"Ranged"}, hybrid:{de:"Hybrid",en:"Hybrid"} }
+};
+
+let LANG = (navigator.language||"en").toLowerCase().startsWith("de") ? "de" : "en";
+const t = k => UI[LANG][k];
+const attr = (cat,key) => ATTR[cat][key][LANG];
+
+/* =====================================================
+   ROSTER – Stand/as of Season 8.5 (Juni/June 2026), 51 Helden
+   Bilder: legt neben die HTML-Datei einen Ordner "img/" mit
+   Dateien wie img/captain-america.png – sie werden automatisch
+   geladen. Fehlt ein Bild, erscheint die Initialen-Kachel.
+   Images: put an "img/" folder next to this HTML file with
+   files like img/captain-america.png – they load automatically.
+   Missing images fall back to the initials tile.
+   Alternativ/alternatively: img:"custom/path.png" pro Held setzen.
+   ===================================================== */
+const ROLES = {
+  V:{name:"Vanguard",   color:"#ffb020", alt:"#e09200"},
+  D:{name:"Duelist",    color:"#ff4d6b", alt:"#d93755"},
+  S:{name:"Strategist", color:"#2fd6c3", alt:"#1fb3a3"},
+  F:{name:"Multi-Role", color:"#a06bff", alt:"#8450e0"}
+};
+
+const HEROES = [
+  // ---- Vanguards
+  {n:"Captain America", r:"V", g:"m", sp:"human",   af:["avengers"],           rg:"melee",  hp:675,
+   i:{de:"Schneller Schild-Tank – ideal, um die gegnerischen Heiler zu nerven und Ults zu blocken.",
+      en:"Fast shield tank – perfect for harassing enemy healers and blocking ults."}},
+  {n:"Doctor Strange",  r:"V", g:"m", sp:"human",   af:["avengers"],           rg:"ranged", hp:650,
+   i:{de:"Main-Tank mit großem Schild und Portal. Sein Ult kann ganze Teamfights entscheiden.",
+      en:"Main tank with a big shield and a portal. His ult can decide entire team fights."}},
+  {n:"Groot",           r:"V", g:"m", sp:"alien",   af:["guardians"],          rg:"melee",  hp:700,
+   i:{de:"Wände, Wände, Wände. Blocke Sichtlinien, trenne Gegner vom Team und halte den Point.",
+      en:"Walls, walls, walls. Block sightlines, split enemies from their team and hold the point."}},
+  {n:"Hulk",            r:"V", g:"m", sp:"human",   af:["avengers"],           rg:"melee",  hp:650,
+   i:{de:"Dive-Tank mit riesigen Sprüngen und Gamma-Schild. Spring in die Backline und smash.",
+      en:"Dive tank with huge leaps and a gamma shield. Jump into the backline and smash."}},
+  {n:"Magneto",         r:"V", g:"m", sp:"mutant",  af:["xmen"],               rg:"ranged", hp:650,
+   i:{de:"Ranged-Tank mit Schilden für dich und Verbündete. Stabil und schwer zu knacken.",
+      en:"Ranged tank with shields for you and your allies. Stable and hard to crack."}},
+  {n:"Peni Parker",     r:"V", g:"f", sp:"human",   af:["spider"],             rg:"ranged", hp:650,
+   i:{de:"Minen und Netze machen aus jedem Point eine Festung. Königin der Verteidigung.",
+      en:"Mines and webs turn every point into a fortress. Queen of defense."}},
+  {n:"Thor",            r:"V", g:"m", sp:"god",     af:["avengers","asgard"],  rg:"melee",  hp:600,
+   i:{de:"Aggressiver Brawler mit Blitz-Dashes. Immer vorne, immer Druck.",
+      en:"Aggressive brawler with lightning dashes. Always up front, always applying pressure."}},
+  {n:"Venom",           r:"V", g:"m", sp:"symbiote",af:["spider"],             rg:"melee",  hp:800,
+   i:{de:"Dive-Tank mit fettem Bonus-HP. Rein ins Chaos, stören, überleben, raus.",
+      en:"Dive tank with massive bonus HP. Into the chaos, disrupt, survive, get out."}},
+  {n:"The Thing",       r:"V", g:"m", sp:"human",   af:["f4"],                 rg:"melee",  hp:700,
+   i:{de:"Unaufhaltsamer Brawler, immun gegen Knockbacks. It's clobberin' time.",
+      en:"Unstoppable brawler, immune to knockbacks. It's clobberin' time."}},
+  {n:"Emma Frost",      r:"V", g:"f", sp:"mutant",  af:["xmen"],               rg:"ranged", hp:650,
+   i:{de:"Diamantform, Psi-Beam und ein Ult, der Gegner kurz die Kontrolle kostet.",
+      en:"Diamond form, psi beam and an ult that briefly takes control away from enemies."}},
+  {n:"Angela",          r:"V", g:"f", sp:"god",     af:["asgard"],             rg:"melee",  hp:625,
+   i:{de:"Fliegender Vanguard mit Speer und Axt – chargt Gegner direkt in dein Team.",
+      en:"Flying vanguard with spear and axe – charges enemies straight into your team."}},
+  {n:"Rogue",           r:"V", g:"f", sp:"mutant",  af:["xmen"],               rg:"melee",  hp:650,
+   i:{de:"Fliegt, prügelt und leiht sich die Kräfte ihrer Gegner. Chaos an der Frontline.",
+      en:"Flies, brawls and borrows her enemies' powers. Pure chaos on the frontline."}},
+  {n:"Devil Dinosaur",  r:"V", g:"duo", sp:"animal",af:["none"],               rg:"melee",  hp:850,
+   i:{de:"Riesiger Dino mit Moon Girl an Bord. Pure Präsenz – niemand übersieht euch.",
+      en:"Giant dino with Moon Girl on board. Pure presence – nobody overlooks you."}},
+  // ---- Duelists
+  {n:"Black Panther",   r:"D", g:"m", sp:"human",   af:["avengers"],           rg:"melee",  hp:275,
+   i:{de:"Melee-Assassine, dessen Dashes bei Takedowns resetten. High risk, high reward.",
+      en:"Melee assassin whose dashes reset on takedowns. High risk, high reward."}},
+  {n:"Black Widow",     r:"D", g:"f", sp:"human",   af:["avengers","shield"],  rg:"ranged", hp:250,
+   i:{de:"Sniperin für lange Sichtlinien. Ruhige Hand gefragt.",
+      en:"Sniper for long sightlines. Steady hands required."}},
+  {n:"Blade",           r:"D", g:"m", sp:"dhampir", af:["none"],               rg:"melee",  hp:300,
+   i:{de:"Nahkampf-Vampirjäger mit Lifesteal. Bleib dran und heile dich durch Schaden.",
+      en:"Melee vampire hunter with lifesteal. Stay on target and heal through damage."}},
+  {n:"Black Cat",       r:"D", g:"f", sp:"human",   af:["spider"],             rg:"hybrid", hp:250,
+   i:{de:"Dive-Diebin mit Grappling Hook. Treffer bringen Fortune für Extra-Fähigkeiten.",
+      en:"Dive thief with a grappling hook. Hits build Fortune for extra abilities."}},
+  {n:"Cyclops",         r:"D", g:"m", sp:"mutant",  af:["xmen"],               rg:"ranged", hp:250,
+   i:{de:"Optic Blasts mit Ricochet – und der Rückstoß trägt dich elegant übers Feld.",
+      en:"Optic blasts with ricochet – and the recoil carries you elegantly across the field."}},
+  {n:"Daredevil",       r:"D", g:"m", sp:"human",   af:["none"],               rg:"melee",  hp:250,
+   i:{de:"Agiler Melee-Flanker. Sieht alles – auch ohne Augen.",
+      en:"Agile melee flanker. Sees everything – even without eyes."}},
+  {n:"Elsa Bloodstone", r:"D", g:"f", sp:"human",   af:["none"],               rg:"ranged", hp:250,
+   i:{de:"Monsterjägerin mit Shotgun-Power. Auf kurze Distanz brandgefährlich.",
+      en:"Monster hunter with shotgun power. Extremely dangerous at close range."}},
+  {n:"Hawkeye",         r:"D", g:"m", sp:"human",   af:["avengers"],           rg:"ranged", hp:250,
+   i:{de:"One-Shot-Potenzial mit dem Bogen. Auf Distanz einer der gefürchtetsten Picks.",
+      en:"One-shot potential with the bow. One of the most feared picks at range."}},
+  {n:"Hela",            r:"D", g:"f", sp:"god",     af:["asgard"],             rg:"ranged", hp:250,
+   i:{de:"Tödliche Ranged-DPS aus der zweiten Reihe. Jeder Headshot tut weh.",
+      en:"Deadly ranged DPS from the second row. Every headshot hurts."}},
+  {n:"Human Torch",     r:"D", g:"m", sp:"human",   af:["f4"],                 rg:"ranged", hp:250,
+   i:{de:"Fliegender Feuer-Damage mit Flammenwänden. Flame on!",
+      en:"Flying fire damage with walls of flame. Flame on!"}},
+  {n:"Iron Fist",       r:"D", g:"m", sp:"human",   af:["none"],               rg:"melee",  hp:275,
+   i:{de:"Martial-Arts-Duellant, der Flanken jagt und 1v1s dominiert.",
+      en:"Martial arts duelist who hunts flanks and dominates 1v1s."}},
+  {n:"Iron Man",        r:"D", g:"m", sp:"human",   af:["avengers"],           rg:"ranged", hp:250,
+   i:{de:"Fliegender Poke-Damage mit Unibeam. Halte Abstand und nerv von oben.",
+      en:"Flying poke damage with a unibeam. Keep your distance and pester from above."}},
+  {n:"Magik",           r:"D", g:"f", sp:"mutant",  af:["xmen"],               rg:"melee",  hp:275,
+   i:{de:"Portal-Melee mit riesigem Burst. Aus Limbo rein, Combo, weg.",
+      en:"Portal melee with huge burst. In from Limbo, combo, gone."}},
+  {n:"Mister Fantastic",r:"D", g:"m", sp:"human",   af:["f4"],                 rg:"melee",  hp:350,
+   i:{de:"Dehnbarer Brawler mit viel Sustain. Schwer zu töten, nervig zu spielen – für die Gegner.",
+      en:"Stretchy brawler with lots of sustain. Hard to kill, annoying to play against."}},
+  {n:"Moon Knight",     r:"D", g:"m", sp:"human",   af:["none"],               rg:"ranged", hp:250,
+   i:{de:"Ankh-Combos mit absurdem Flächenschaden. Platziere klug, ernte hart.",
+      en:"Ankh combos with absurd area damage. Place smart, reap hard."}},
+  {n:"Namor",           r:"D", g:"m", sp:"atlantean",af:["none"],              rg:"ranged", hp:275,
+   i:{de:"Tintenfisch-Türme und Projektile. Der natürliche Feind aller Dive-Helden.",
+      en:"Squid turrets and projectiles. The natural enemy of every dive hero."}},
+  {n:"Phoenix",         r:"D", g:"f", sp:"mutant",  af:["xmen"],               rg:"ranged", hp:250,
+   i:{de:"Burst-Magierin mit Feuer-Explosionen. Markieren, zünden, boom.",
+      en:"Burst mage with fiery explosions. Mark, ignite, boom."}},
+  {n:"Psylocke",        r:"D", g:"f", sp:"mutant",  af:["xmen"],               rg:"hybrid", hp:250,
+   i:{de:"Mobile Flankerin mit Dash-Resets und einem Ult, dem kaum jemand entkommt.",
+      en:"Mobile flanker with dash resets and an ult almost nobody escapes."}},
+  {n:"Scarlet Witch",   r:"D", g:"f", sp:"human",   af:["avengers"],           rg:"ranged", hp:250,
+   i:{de:"Einsteigerfreundlicher Auto-Aim-Damage – und ein Ult, der ganze Teams löscht.",
+      en:"Beginner-friendly auto-aim damage – and an ult that erases entire teams."}},
+  {n:"Spider-Man",      r:"D", g:"m", sp:"human",   af:["spider","avengers"],  rg:"melee",  hp:250,
+   i:{de:"Maximale Mobilität. Rein, Combo, raus – bevor jemand reagieren kann.",
+      en:"Maximum mobility. In, combo, out – before anyone can react."}},
+  {n:"Squirrel Girl",   r:"D", g:"f", sp:"human",   af:["avengers"],           rg:"ranged", hp:250,
+   i:{de:"Projektil-Spam um jede Ecke plus Eichhörnchen-Armee. Unbesiegt, wie immer.",
+      en:"Projectile spam around every corner plus a squirrel army. Unbeaten, as always."}},
+  {n:"Star-Lord",       r:"D", g:"m", sp:"human",   af:["guardians"],          rg:"ranged", hp:250,
+   i:{de:"Dual-Blaster und viel Movement. Mid-Range-Duelle sind sein Wohnzimmer.",
+      en:"Dual blasters and lots of movement. Mid-range duels are his living room."}},
+  {n:"Storm",           r:"D", g:"f", sp:"mutant",  af:["xmen"],               rg:"ranged", hp:250,
+   i:{de:"Fliegende Aura-DPS, die das Team mit Speed- oder Damage-Buffs pusht.",
+      en:"Flying aura DPS who boosts the team with speed or damage buffs."}},
+  {n:"The Punisher",    r:"D", g:"m", sp:"human",   af:["none"],               rg:"ranged", hp:250,
+   i:{de:"Klassischer Hitscan-Gunner mit Turret. Simpel, effektiv, gnadenlos.",
+      en:"Classic hitscan gunner with a turret. Simple, effective, merciless."}},
+  {n:"Winter Soldier",  r:"D", g:"m", sp:"human",   af:["avengers"],           rg:"hybrid", hp:250,
+   i:{de:"Hook plus Burst – und sein Ult resettet bei Takedowns. Again!",
+      en:"Hook plus burst – and his ult resets on takedowns. Again!"}},
+  {n:"Wolverine",       r:"D", g:"m", sp:"mutant",  af:["xmen","avengers"],    rg:"melee",  hp:350,
+   i:{de:"Der Tank-Killer schlechthin. Schnapp dir den Vanguard und zieh ihn ins Team.",
+      en:"The tank killer. Grab the enemy vanguard and drag them into your team."}},
+  // ---- Strategists
+  {n:"Adam Warlock",    r:"S", g:"m", sp:"cosmic",  af:["guardians"],          rg:"ranged", hp:250,
+   i:{de:"Burst-Heilung und ein Ult, der das halbe Team wiederbelebt.",
+      en:"Burst healing and an ult that revives half the team."}},
+  {n:"Cloak & Dagger",  r:"S", g:"duo", sp:"human", af:["none"],               rg:"ranged", hp:250,
+   i:{de:"Zwei Helden in einem – wechsle zwischen Heilung und Damage, wie es die Lage braucht.",
+      en:"Two heroes in one – switch between healing and damage as the situation demands."}},
+  {n:"Gambit",          r:"S", g:"m", sp:"mutant",  af:["xmen"],               rg:"ranged", hp:250,
+   i:{de:"Kinetische Karten, die Verbündete heilen und Gegner verbrennen. Mon ami!",
+      en:"Kinetic cards that heal allies and burn enemies. Mon ami!"}},
+  {n:"Invisible Woman", r:"S", g:"f", sp:"human",   af:["f4"],                 rg:"ranged", hp:275,
+   i:{de:"Schilde, Unsichtbarkeit und Push/Pull-Utility. Unterschätzt sie nicht.",
+      en:"Shields, invisibility and push/pull utility. Do not underestimate her."}},
+  {n:"Jeff the Land Shark", short:"Jeff 🦈", r:"S", g:"m", sp:"animal", af:["none"], rg:"ranged", hp:250,
+   i:{de:"Heilt süß und niedlich – und frisst mit dem Ult das halbe Gegnerteam. Om nom.",
+      en:"Heals all cute and cuddly – and eats half the enemy team with his ult. Om nom."}},
+  {n:"Loki",            r:"S", g:"m", sp:"god",     af:["asgard"],             rg:"ranged", hp:250,
+   i:{de:"Klone, Täuschung und ein Ult, der jeden anderen Helden kopiert. Trickser-Support.",
+      en:"Clones, deception and an ult that copies any other hero. Trickster support."}},
+  {n:"Luna Snow",       r:"S", g:"f", sp:"human",   af:["none"],               rg:"ranged", hp:275,
+   i:{de:"Top-Heilerin mit Freeze und einem Ult, das dein Team quasi unsterblich macht.",
+      en:"Top-tier healer with freeze and an ult that makes your team basically immortal."}},
+  {n:"Mantis",          r:"S", g:"f", sp:"human",   af:["guardians"],          rg:"ranged", hp:275,
+   i:{de:"Damage-Boosts, Sleep und solide Heilung. Klein, aber spielentscheidend.",
+      en:"Damage boosts, sleep and solid healing. Small, but game-deciding."}},
+  {n:"Rocket Raccoon",  r:"S", g:"m", sp:"animal",  af:["guardians"],          rg:"ranged", hp:250,
+   i:{de:"Sichere Heals aus der Distanz plus Rez-Beacon. Schwer zu fangen, wichtig zu schützen.",
+      en:"Safe heals from a distance plus a rez beacon. Hard to catch, important to protect."}},
+  {n:"Ultron",          r:"S", g:"none", sp:"robot",af:["none"],               rg:"ranged", hp:250,
+   i:{de:"Drohnen-Support, der fliegend von oben heilt und nebenbei ordentlich Druck macht.",
+      en:"Drone support that heals while flying above – and applies solid pressure on the side."}},
+  {n:"White Fox",       r:"S", g:"f", sp:"kumiho",  af:["none"],               rg:"hybrid", hp:250,
+   i:{de:"Kumiho-Spionin aus Südkorea – wandelt zwischen Fuchs- und Menschenform und hält das Team am Leben.",
+      en:"Kumiho super-spy from South Korea – shifts between fox and human form while keeping the team alive."}},
+  // ---- Multi-Role
+  {n:"Deadpool",        r:"F", g:"m", sp:"human",   af:["none"],               rg:"hybrid", hp:300,
+   i:{de:"Der erste Multi-Role-Held: Tank, DPS oder Support – Wade entscheidet spontan. Chimichangas optional.",
+      en:"The first multi-role hero: tank, DPS or support – Wade decides on the fly. Chimichangas optional."}}
+];
+
+/* ===================================================== STRATS */
+const STRATS = [
+  {t:{de:"Nur Vanguards",en:"Vanguards only"},
+   d:{de:"Alle sechs spielen <b>Vanguard</b>. Niemand stirbt, niemand tötet – aber der Point gehört euch. Wechseln während der Runde ist nur auf andere Vanguards erlaubt.",
+      en:"All six play <b>Vanguard</b>. Nobody dies, nobody kills – but the point belongs to you. Swapping mid-round is only allowed onto other vanguards."}},
+  {t:{de:"Nur Duelists",en:"Duelists only"},
+   d:{de:"Alle sechs spielen <b>Duelist</b>. Kein Tank, kein Heal, kein Plan B. Wer zuerst schießt, gewinnt – hoffentlich seid ihr das.",
+      en:"All six play <b>Duelist</b>. No tank, no heals, no plan B. Whoever shoots first wins – hopefully that's you."}},
+  {t:{de:"Nur Strategists",en:"Strategists only"},
+   d:{de:"Alle sechs spielen <b>Strategist</b>. Ihr heilt euch gegenseitig durch alles durch. Geduld gewinnt diese Runde – theoretisch.",
+      en:"All six play <b>Strategist</b>. You heal each other through everything. Patience wins this round – in theory."}},
+  {t:{de:"Only Hitscan",en:"Hitscan only"},
+   d:{de:"Nur Helden, die primär mit <b>Hitscan-Waffen</b> treffen. Kein Projektil-Spam, kein Melee – reines Aim.",
+      en:"Only heroes whose primary weapons are <b>hitscan</b>. No projectile spam, no melee – pure aim."},
+   h:["The Punisher","Black Widow","Hela","Star-Lord","Winter Soldier","Elsa Bloodstone"]},
+  {t:{de:"Air Force",en:"Air Force"},
+   d:{de:"Nur Helden, die <b>dauerhaft fliegen</b> können – und ihr bleibt so viel wie möglich in der Luft. Der Boden ist Lava.",
+      en:"Only heroes with <b>sustained flight</b> – and you stay airborne as much as possible. The floor is lava."},
+   h:["Iron Man","Storm","Human Torch","Ultron","Angela"]},
+  {t:{de:"Nahkampf only",en:"Melee only"},
+   d:{de:"Nur <b>Melee-Helden</b>. Geschossen wird nicht – ihr geht jedem Gegner direkt ins Gesicht.",
+      en:"Only <b>melee heroes</b>. No shooting – you get right into every enemy's face."},
+   h:["Wolverine","Iron Fist","Black Panther","Magik","Spider-Man","Blade","Daredevil","Hulk","The Thing","Thor","Venom","Captain America"]},
+  {t:{de:"Avengers Assemble",en:"Avengers Assemble"},
+   d:{de:"Nur die sechs <b>Avengers</b> – genau eine Person pro Held. Earth's Mightiest Heroes, jetzt liefert auch so ab.",
+      en:"Only the six <b>Avengers</b> – exactly one player per hero. Earth's Mightiest Heroes, now deliver like it."},
+   h:["Captain America","Iron Man","Thor","Hulk","Hawkeye","Black Widow"]},
+  {t:{de:"First Family",en:"First Family"},
+   d:{de:"Die <b>Fantastic Four</b> müssen im Team sein – die restlichen zwei Slots sind frei. Team-Up-Bonus inklusive.",
+      en:"The <b>Fantastic Four</b> must be on the team – the remaining two slots are free. Team-up bonus included."},
+   h:["Mister Fantastic","Invisible Woman","Human Torch","The Thing"]},
+  {t:{de:"X-Men only",en:"X-Men only"},
+   d:{de:"Nur <b>Mutanten der X-Men</b>. Professor X wäre stolz. Oder auch nicht.",
+      en:"Only <b>X-Men mutants</b>. Professor X would be proud. Or maybe not."},
+   h:["Wolverine","Storm","Magik","Psylocke","Magneto","Emma Frost","Phoenix","Gambit","Rogue","Cyclops"]},
+  {t:{de:"Guardians of the Galaxy",en:"Guardians of the Galaxy"},
+   d:{de:"Die <b>Guardians</b> bilden den Kern eures Teams, ein Slot ist frei. Awesome Mix läuft im Hintergrund – Pflicht.",
+      en:"The <b>Guardians</b> form the core of your team, one slot is free. Awesome Mix playing in the background – mandatory."},
+   h:["Star-Lord","Rocket Raccoon","Groot","Mantis","Adam Warlock"]},
+  {t:{de:"Villains only",en:"Villains only"},
+   d:{de:"Heute seid ihr die Bösen: nur <b>Schurken und Antihelden</b> erlaubt.",
+      en:"Today you're the bad guys: only <b>villains and antiheroes</b> allowed."},
+   h:["Venom","Loki","Hela","Magneto","Ultron","The Punisher","Winter Soldier","Deadpool","Emma Frost","Namor"]},
+  {t:{de:"Ladies Night",en:"Ladies' Night"},
+   d:{de:"Nur <b>weibliche Heldinnen</b> im Team. Die Auswahl ist riesig – Ausreden gibt es keine.",
+      en:"Only <b>female heroes</b> on the team. The selection is huge – no excuses."},
+   h:["Black Widow","Storm","Hela","Magik","Psylocke","Scarlet Witch","Squirrel Girl","Luna Snow","Mantis","Invisible Woman","Emma Frost","Phoenix","Angela","Rogue","Elsa Bloodstone","Black Cat","White Fox","Peni Parker"]},
+  {t:{de:"Kein Ult",en:"No ults"},
+   d:{de:"<b>Ultimates sind verboten.</b> Wer trotzdem eins zündet, muss die restliche Runde beim Respawn 10 Sekunden warten – Ehrenkodex.",
+      en:"<b>Ultimates are banned.</b> Anyone who pops one anyway has to wait 10 seconds at spawn for the rest of the round – honor code."}},
+  {t:{de:"Main-Verbot",en:"No mains"},
+   d:{de:"Niemand darf seinen <b>Main oder Most-Played-Helden</b> spielen. Zeit für die Helden, die ihr seit Season 0 ignoriert.",
+      en:"Nobody plays their <b>main or most-played hero</b>. Time for the heroes you've been ignoring since Season 0."}},
+  {t:{de:"Rollentausch",en:"Role swap"},
+   d:{de:"Jede Person spielt die Rolle, die sie <b>am seltensten</b> spielt. Tank-Mains heilen, Heiler flanken, DPS… leiden.",
+      en:"Everyone plays the role they play <b>least</b>. Tank mains heal, healers flank, DPS… suffer."}},
+  {t:{de:"Team-Up-Pflicht",en:"Team-up mandate"},
+   d:{de:"Es dürfen nur Helden gepickt werden, die mit mindestens einem Teammitglied ein <b>aktives Team-Up</b> haben. Synergie oder gar nichts.",
+      en:"You may only pick heroes that share an <b>active team-up</b> with at least one teammate. Synergy or nothing."}},
+  {t:{de:"Buchstaben-Lock",en:"Letter lock"},
+   d:{de:"Alle picken Helden, deren Name mit <b>demselben Buchstaben</b> beginnt. Einigt euch schnell – die Auswahl wird eng. Tipp: S und M sind eure Freunde.",
+      en:"Everyone picks heroes whose names start with <b>the same letter</b>. Agree fast – options get tight. Tip: S and M are your friends."}},
+  {t:{de:"Wheelspin-Runde",en:"Wheelspin round"},
+   d:{de:"Alle sechs lassen ihren Helden vom <b>Random-Charakter-Rad</b> in dieser App bestimmen. Kein Reroll, kein Jammern.",
+      en:"All six let the <b>random character wheel</b> in this app pick their hero. No rerolls, no whining."}}
+];
+
+/* ===================================================== SOUND */
+let audioCtx = null, muted = false;
+function ac(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function blip(freq, dur, type, vol, when=0){
+  if(muted) return;
+  try{
+    const c = ac(), tt = c.currentTime + when;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, tt);
+    g.gain.exponentialRampToValueAtTime(.0001, tt + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(tt); o.stop(tt + dur + .02);
+  }catch(e){}
+}
+const sndTick   = ()=> blip(1900, .035, "square", .05);
+const sndClick  = ()=> blip(1300, .04,  "square", .05);
+const sndBench  = ()=> blip(300,  .12,  "sawtooth", .06);
+const sndFanfare= ()=>{ blip(523,.14,"triangle",.09,0); blip(659,.14,"triangle",.09,.09); blip(784,.24,"triangle",.1,.18); };
+const sndPop    = ()=>{ blip(880,.1,"triangle",.09,0); blip(587,.16,"triangle",.08,.07); };
+const sndWrong  = ()=>{ blip(220,.14,"sawtooth",.06,0); blip(180,.18,"sawtooth",.05,.1); };
+
+function toggleSound(){
+  muted = !muted;
+  document.querySelectorAll(".sound-btn").forEach(b=> b.textContent = muted ? "🔇" : "🔊");
+  if(!muted) sndClick();
+}
+
+/* ===================================================== AVATARE / BILDER */
+function slug(name){
+  return name.toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+}
+function initials(name){
+  return name.replace("&","").split(/\s+/).filter(w=>w).slice(0,2).map(w=>w[0].toUpperCase()).join("");
+}
+function avatarNode(hero, cls=""){
+  const div = document.createElement("div");
+  div.className = "avatar " + cls;
+  div.style.setProperty("--ac", ROLES[hero.r].color);
+  const img = document.createElement("img");
+  img.alt = hero.n;
+  img.loading = "lazy";
+  img.onerror = ()=>{
+    img.remove();
+    const s = document.createElement("span");
+    s.textContent = initials(hero.n);
+    div.appendChild(s);
+  };
+  img.src = hero.img || ("img/" + slug(hero.n) + ".png");
+  div.appendChild(img);
+  return div;
+}
+function setAvatar(el, hero){
+  const fresh = avatarNode(hero, el.classList.contains("lg") ? "lg" : "");
+  el.replaceWith(fresh);
+  fresh.id = el.id;
+  return fresh;
+}
+
+/* ===================================================== I18N ANWENDEN */
+function applyI18n(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    el.innerHTML = t(el.dataset.i18n);
+  });
+  document.querySelectorAll(".lang-btn").forEach(b=> b.textContent = LANG==="de" ? "EN" : "DE");
+  document.getElementById("guessInput").placeholder = t("searchPh");
+  document.getElementById("modeHint").textContent = mode==="simple" ? t("hintSimple") : t("hintMixed");
+  document.getElementById("stratBtn").textContent = stratRolled ? t("stratAgain") : t("stratStart");
+  document.getElementById("rosterNote").innerHTML = t("rosterNote")(HEROES.length, STRATS.length);
+  document.getElementById("libIntro").textContent = t("libIntro")(STRATS.length);
+  document.getElementById("guessHint").innerHTML = t("guessHint");
+  document.getElementById("boardHead").innerHTML = t("boardCols").map(c=>`<span>${c}</span>`).join("");
+  renderBench();
+  buildLibrary();
+  if(currentStrat) renderStratCard(currentStrat);
+  if(currentHero && document.getElementById("sheet").classList.contains("show")) fillSheet(currentHero);
+  renderBoard();
+  if(guessOver && target) renderBanner();
+}
+function toggleLang(){
+  LANG = LANG==="de" ? "en" : "de";
+  sndClick();
+  applyI18n();
+}
+
+/* ===================================================== NAVIGATION */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  const el = document.getElementById(id);
+  el.classList.remove("active"); void el.offsetWidth;
+  el.classList.add("active");
+  if(id==="wheelScreen") drawWheel();
+  window.scrollTo(0,0);
+}
+
+/* ===================================================== WHEEL */
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+let benched = new Set();
+let mode = "simple";
+let order = HEROES.map((_,i)=>i);
+let rotation = -Math.PI/2;
+let spinning = false;
+let currentHero = null;
+let lastTickSeg = -1;
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function setMode(m){
+  if(spinning || mode===m) return;
+  mode = m;
+  document.getElementById("modeSimple").classList.toggle("on", m==="simple");
+  document.getElementById("modeMixed").classList.toggle("on", m==="mixed");
+  document.getElementById("modeHint").textContent = m==="simple" ? t("hintSimple") : t("hintMixed");
+  order = m==="simple" ? HEROES.map((_,i)=>i) : shuffle(HEROES.map((_,i)=>i));
+  sndClick();
+  drawWheel();
+}
+function activeHeroes(){
+  return order.filter(i=>!benched.has(i)).map(i=>({...HEROES[i], idx:i}));
+}
+function wheelCss(){
+  return window.innerWidth>=900 ? 440 : Math.min(window.innerWidth*0.86, 400);
+}
+function sizeCanvas(){
+  const cssSize = wheelCss();
+  const dpr = Math.min(window.devicePixelRatio||1, 2.5);
+  canvas.style.width = cssSize+"px";
+  canvas.style.height = cssSize+"px";
+  canvas.width = cssSize*dpr;
+  canvas.height = cssSize*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return cssSize;
+}
+function drawWheel(){
+  const size = sizeCanvas();
+  const c = size/2, R = c-4;
+  const list = activeHeroes();
+  const n = list.length;
+  document.getElementById("hubCount").textContent = n;
+  ctx.clearRect(0,0,size,size);
+  if(n===0) return;
+
+  const seg = (Math.PI*2)/n;
+  for(let k=0;k<n;k++){
+    const a0 = rotation + k*seg, a1 = a0+seg;
+    const role = ROLES[list[k].r];
+    ctx.beginPath();
+    ctx.moveTo(c,c);
+    ctx.arc(c,c,R,a0,a1);
+    ctx.closePath();
+    ctx.fillStyle = (k%2===0)? role.color : role.alt;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(11,9,32,.6)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    const mid = a0+seg/2;
+    ctx.save();
+    ctx.translate(c,c);
+    ctx.rotate(mid);
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(11,9,32,.92)";
+    const base = size/400;
+    const fs = (n>44? 9 : n>34? 10 : n>24? 11.5 : 13) * base;
+    ctx.font = `700 ${fs}px system-ui, sans-serif`;
+    ctx.fillText(list[k].short || list[k].n, R-10, 0, R-60*base);
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(c,c,R,0,Math.PI*2);
+  ctx.strokeStyle = "rgba(255,213,66,.85)"; ctx.lineWidth = 3; ctx.stroke();
+  ctx.beginPath(); ctx.arc(c,c,R-5,0,Math.PI*2);
+  ctx.strokeStyle = "rgba(245,243,255,.25)"; ctx.lineWidth = 1.2; ctx.stroke();
+}
+function segUnderPointer(n, seg){
+  let a = (-Math.PI/2 - rotation) % (Math.PI*2);
+  a = (a + Math.PI*2) % (Math.PI*2);
+  return Math.floor(a/seg) % n;
+}
+function easeOutQuart(x){ return 1-Math.pow(1-x,4); }
+
+function spin(){
+  if(spinning) return;
+  const list = activeHeroes();
+  if(list.length<2){ resetBench(); return; }
+  spinning = true;
+  document.getElementById("spinBtn").disabled = true;
+
+  const n = list.length;
+  const seg = (Math.PI*2)/n;
+  const winner = Math.floor(Math.random()*n);
+
+  const targetMod = -Math.PI/2 - (winner+0.5)*seg;
+  const currentMod = ((rotation % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+  let delta = ((targetMod - currentMod) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+  const turns = 5 + Math.floor(Math.random()*3);
+  const total = delta + turns*Math.PI*2;
+
+  const start = rotation;
+  const dur = 4200 + Math.random()*600;
+  const t0 = performance.now();
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  lastTickSeg = segUnderPointer(n, seg);
+
+  function frame(now){
+    const x = Math.min((now-t0)/(reduced? 200 : dur), 1);
+    rotation = start + total*easeOutQuart(x);
+    drawWheel();
+    const cur = segUnderPointer(n, seg);
+    if(cur !== lastTickSeg){ lastTickSeg = cur; sndTick(); }
+    if(x<1){ requestAnimationFrame(frame); }
+    else{
+      rotation = start+total;
+      drawWheel();
+      spinning = false;
+      document.getElementById("spinBtn").disabled = false;
+      document.getElementById("pointer").classList.add("wobble");
+      setTimeout(()=>document.getElementById("pointer").classList.remove("wobble"),520);
+      currentHero = list[winner];
+      sndFanfare();
+      setTimeout(()=>{ fillSheet(currentHero); openSheet(); }, 380);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- Result-Sheet ---------- */
+function fillSheet(hero){
+  const role = ROLES[hero.r];
+  const badge = document.getElementById("resultRole");
+  badge.textContent = role.name;
+  badge.style.setProperty("--rb", role.color);
+  setAvatar(document.getElementById("resultAvatar"), hero);
+  document.getElementById("resultName").textContent = hero.n;
+  document.getElementById("resultInfo").innerHTML = hero.i[LANG];
+}
+function openSheet(){
+  document.getElementById("backdrop").classList.add("show");
+  document.getElementById("sheet").classList.add("show");
+}
+function closeSheet(){
+  document.getElementById("backdrop").classList.remove("show");
+  document.getElementById("sheet").classList.remove("show");
+}
+
+/* ---------- Auslassen / Zurücksetzen ---------- */
+function benchCurrent(){
+  if(currentHero){ benched.add(currentHero.idx); renderBench(); drawWheel(); sndBench(); }
+  closeSheet();
+}
+function unbench(idx){ benched.delete(idx); renderBench(); drawWheel(); sndClick(); }
+function resetBench(){ benched.clear(); renderBench(); drawWheel(); sndPop(); }
+function renderBench(){
+  const box = document.getElementById("benchChips");
+  const resetBtn = document.getElementById("resetBtn");
+  box.innerHTML = "";
+  if(benched.size===0){
+    const span = document.createElement("span");
+    span.className = "bench-empty";
+    span.textContent = t("benchEmptyFull");
+    box.appendChild(span);
+    resetBtn.hidden = true;
+    return;
+  }
+  resetBtn.hidden = false;
+  [...benched].forEach(idx=>{
+    const h = HEROES[idx];
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.innerHTML = `${h.n} <i>✕</i>`;
+    chip.title = t("unbenchTip");
+    chip.onclick = ()=>unbench(idx);
+    box.appendChild(chip);
+  });
+}
+
+/* ===================================================== STRATROULETTE */
+let rolling = false, stratRolled = false, currentStrat = null;
+function rollStrat(){
+  if(rolling) return;
+  rolling = true;
+  const idle = document.getElementById("stratIdle");
+  const shuf = document.getElementById("shuffler");
+  const card = document.getElementById("stratCard");
+  const btn  = document.getElementById("stratBtn");
+  const cyc  = document.getElementById("cyclingText");
+  idle.style.display = "none";
+  card.classList.remove("show");
+  shuf.classList.add("show");
+  btn.disabled = true;
+
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pick = STRATS[Math.floor(Math.random()*STRATS.length)];
+  if(reduced){ finish(); return; }
+
+  let elapsed = 0, delay = 55;
+  (function cycle(){
+    cyc.textContent = STRATS[Math.floor(Math.random()*STRATS.length)].t[LANG];
+    sndClick();
+    elapsed += delay;
+    delay *= 1.13;
+    if(elapsed < 1700){ setTimeout(cycle, delay); }
+    else{ finish(); }
+  })();
+
+  function finish(){
+    shuf.classList.remove("show");
+    currentStrat = pick;
+    stratRolled = true;
+    renderStratCard(pick);
+    document.getElementById("stratCard").classList.add("show");
+    sndPop();
+    btn.disabled = false;
+    btn.textContent = t("stratAgain");
+    rolling = false;
+  }
+}
+function renderStratCard(s){
+  document.getElementById("stratTitle2").textContent = s.t[LANG];
+  document.getElementById("stratDesc").innerHTML = s.d[LANG];
+  const hbox = document.getElementById("stratHeroes");
+  hbox.innerHTML = "";
+  if(s.h){
+    s.h.forEach(name=>{
+      const tag = document.createElement("span");
+      tag.className = "hero-tag";
+      tag.textContent = name;
+      hbox.appendChild(tag);
+    });
+  }
+}
+
+/* ===================================================== BIBLIOTHEK */
+function buildLibrary(){
+  const list = document.getElementById("libList");
+  list.innerHTML = "";
+  STRATS.forEach((s,i)=>{
+    const card = document.createElement("article");
+    card.className = "lib-card frame";
+    card.style.animationDelay = (i*0.03)+"s";
+    let heroes = "";
+    if(s.h) heroes = '<div class="strat-heroes">' + s.h.map(n=>`<span class="hero-tag">${n}</span>`).join("") + '</div>';
+    card.innerHTML = `<span class="lib-num">${i+1}</span><h3 class="display">${s.t[LANG]}</h3><p>${s.d[LANG]}</p>${heroes}`;
+    list.appendChild(card);
+  });
+}
+
+/* ===================================================== GUESS THE CHARACTER */
+let target = null;
+let guessed = [];          // Reihenfolge der geratenen Hero-Indizes (neueste zuerst)
+let guessOver = false;
+let guessWon = false;
+
+function startGuess(fresh){
+  if(!fresh && target && !guessOver) return;
+  target = HEROES[Math.floor(Math.random()*HEROES.length)];
+  guessed = [];
+  guessOver = false; guessWon = false;
+  document.getElementById("tryCount").textContent = "0";
+  document.getElementById("boardRows").innerHTML = "";
+  document.getElementById("guessBanner").classList.remove("show");
+  document.getElementById("giveUpBtn").disabled = false;
+  const inp = document.getElementById("guessInput");
+  inp.value = ""; inp.disabled = false;
+  if(fresh) sndClick();
+}
+
+const inp = document.getElementById("guessInput");
+const suggBox = document.getElementById("suggBox");
+inp.addEventListener("input", renderSuggestions);
+inp.addEventListener("focus", renderSuggestions);
+document.addEventListener("click", e=>{
+  if(!document.getElementById("guessSearch").contains(e.target)) suggBox.classList.remove("show");
+});
+
+function renderSuggestions(){
+  const q = inp.value.trim().toLowerCase();
+  suggBox.innerHTML = "";
+  if(guessOver){ suggBox.classList.remove("show"); return; }
+  const matches = HEROES
+    .map((h,i)=>({...h, idx:i}))
+    .filter(h=>!guessed.includes(h.idx) && h.n.toLowerCase().includes(q))
+    .sort((a,b)=>a.n.localeCompare(b.n)); // komplette Liste, alphabetisch – Dropdown ist scrollbar
+  if(matches.length===0){ suggBox.classList.remove("show"); return; }
+  matches.forEach(h=>{
+    const b = document.createElement("button");
+    b.className = "sugg";
+    b.appendChild(avatarNode(h,"sm"));
+    const name = document.createElement("span");
+    name.textContent = h.n;
+    b.appendChild(name);
+    const role = document.createElement("span");
+    role.className = "role-mini";
+    role.textContent = ROLES[h.r].name;
+    b.appendChild(role);
+    b.onclick = ()=>makeGuess(h.idx);
+    suggBox.appendChild(b);
+  });
+  suggBox.classList.add("show");
+}
+
+function cmpSet(a, b){
+  const A = new Set(a), B = new Set(b);
+  const inter = [...A].filter(x=>B.has(x));
+  if(inter.length===A.size && inter.length===B.size) return "ok";
+  if(inter.length>0 && !(A.has("none")&&B.has("none")&&inter.length===0)) return inter.length>0 ? "part" : "no";
+  return "no";
+}
+function cmpHP(g, tg){
+  if(g===tg) return {s:"ok", a:""};
+  return {s: Math.abs(g-tg)<=50 ? "part" : "no", a: tg>g ? "↑" : "↓"};
+}
+function evalGuess(h){
+  return {
+    g:  h.g===target.g ? "ok":"no",
+    sp: h.sp===target.sp ? "ok":"no",
+    af: cmpSet(h.af, target.af),
+    r:  h.r===target.r ? "ok":"no",
+    rg: h.rg===target.rg ? "ok" : (h.rg==="hybrid"||target.rg==="hybrid" ? "part":"no"),
+    hp: cmpHP(h.hp, target.hp)
+  };
+}
+function buildRow(idx, animate){
+  const h = HEROES[idx];
+  const res = evalGuess(h);
+  const row = document.createElement("div");
+  row.className = "board-row";
+  if(!animate) row.style.setProperty("--noanim","1");
+
+  const heroCell = document.createElement("div");
+  heroCell.className = "cell hero";
+  heroCell.appendChild(avatarNode(h,"sm"));
+  const nm = document.createElement("span");
+  nm.textContent = h.n;
+  heroCell.appendChild(nm);
+  row.appendChild(heroCell);
+
+  const cells = [
+    [res.g,  attr("g",h.g)],
+    [res.sp, attr("sp",h.sp)],
+    [res.af, h.af.map(a=>attr("af",a)).join(", ")],
+    [res.r,  ROLES[h.r].name],
+    [res.rg, attr("rg",h.rg)],
+  ];
+  cells.forEach(([cls,txt])=>{
+    const c = document.createElement("div");
+    c.className = "cell " + cls;
+    c.textContent = txt;
+    row.appendChild(c);
+  });
+  const hpCell = document.createElement("div");
+  hpCell.className = "cell " + res.hp.s;
+  hpCell.innerHTML = `${h.hp}<span class="arrow">${res.hp.a}</span>`;
+  row.appendChild(hpCell);
+  return row;
+}
+function renderBoard(){
+  const box = document.getElementById("boardRows");
+  box.innerHTML = "";
+  guessed.forEach(idx=> box.appendChild(buildRow(idx, false)));
+}
+function makeGuess(idx){
+  if(guessOver || guessed.includes(idx)) return;
+  guessed.unshift(idx);
+  const h = HEROES[idx];
+  inp.value = "";
+  suggBox.classList.remove("show");
+  document.getElementById("tryCount").textContent = guessed.length;
+  document.getElementById("boardRows").prepend(buildRow(idx, true));
+
+  if(h.n === target.n){ endGuess(true); }
+  else{
+    const res = evalGuess(h);
+    const anyHit = [res.g,res.sp,res.af,res.r,res.rg,res.hp.s].some(v=>v==="ok"||v==="part");
+    anyHit ? sndClick() : sndWrong();
+  }
+}
+function giveUp(){
+  if(guessOver || !target) return;
+  endGuess(false);
+}
+function renderBanner(){
+  setAvatar(document.getElementById("bannerAvatar"), target);
+  document.getElementById("bannerTitle").innerHTML = guessWon ? t("bannerWin")(target.n) : t("bannerLose")(target.n);
+  document.getElementById("bannerText").innerHTML = guessWon ? t("bannerWinText")(guessed.length, target.i[LANG]) : target.i[LANG];
+}
+function endGuess(won){
+  guessOver = true; guessWon = won;
+  inp.disabled = true;
+  suggBox.classList.remove("show");
+  document.getElementById("giveUpBtn").disabled = true;
+  renderBanner();
+  document.getElementById("guessBanner").classList.add("show");
+  won ? sndFanfare() : sndBench();
+}
+
+/* ===================================================== INIT */
+applyI18n();
+window.addEventListener("resize", ()=>{ if(document.getElementById("wheelScreen").classList.contains("active")) drawWheel(); });
+drawWheel();
+</script>
+</body>
+</html>
