@@ -315,6 +315,9 @@
   .stat-row .v{text-align:right;color:var(--ink);font-weight:600}
   .detail-sub{font-size:10px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
   .sheet-scroll{max-height:min(72dvh,640px);overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+  .ab-row{padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .ab-row b{display:block;font-size:12.5px;color:var(--gold);margin-bottom:2px}
+  .ab-row span{font-size:12.5px;color:var(--muted);line-height:1.45}
 
   /* ---------- Bibliothek ---------- */
   .lib-intro{color:var(--muted);font-size:13.5px;line-height:1.55;margin-bottom:16px}
@@ -369,9 +372,9 @@
   .guess-legend .sq{width:11px;height:11px;clip-path:var(--cut)}
 
   .board-scroll{overflow-x:auto;padding-bottom:14px;-webkit-overflow-scrolling:touch}
-  .board{min-width:604px}
+  .board{min-width:760px}
   .board-head,.board-row{
-    display:grid;grid-template-columns:132px 72px 90px 110px 84px 92px 72px;gap:6px;margin-bottom:6px;
+    display:grid;grid-template-columns:130px 66px 84px 104px 76px 78px 52px 64px 62px;gap:6px;margin-bottom:6px;
   }
   .board-head span{
     font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
@@ -389,11 +392,14 @@
   .board-row .cell:nth-child(5){animation-delay:.32s}
   .board-row .cell:nth-child(6){animation-delay:.40s}
   .board-row .cell:nth-child(7){animation-delay:.48s}
+  .board-row .cell:nth-child(8){animation-delay:.56s}
+  .board-row .cell:nth-child(9){animation-delay:.64s}
   @keyframes flip{from{opacity:0;transform:rotateX(80deg)}to{opacity:1;transform:none}}
   .cell.hero{
-    background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--ink);
-    justify-content:flex-start;gap:8px;text-align:left;font-size:11px;
+    justify-content:flex-start;gap:8px;text-align:left;font-size:11px;border:1px solid var(--line);
   }
+  .cell.hero.ok{background:var(--ok);color:#0d0a20}
+  .cell.hero.no{background:rgba(255,255,255,.05);color:var(--ink)}
   .cell.ok{background:var(--ok)}
   .cell.part{background:var(--part)}
   .cell.no{background:var(--no);color:#fff}
@@ -436,7 +442,7 @@
 
     /* Guess */
     .board{min-width:0}
-    .board-head,.board-row{grid-template-columns:1.7fr .9fr 1.05fr 1.3fr 1fr 1.05fr .8fr}
+    .board-head,.board-row{grid-template-columns:1.6fr .8fr .95fr 1.2fr .9fr .9fr .6fr .75fr .7fr}
     .cell{font-size:12.5px}
     .cell.hero{font-size:12.5px}
     .guess-hint .mobile-only{display:none}
@@ -685,6 +691,8 @@
       </div>
     </div>
     <p class="result-info" id="dtInfo"></p>
+    <div class="detail-sub" data-i18n="dtAbilities"></div>
+    <div id="dtAbilityList"></div>
     <div class="detail-sub" data-i18n="dtProfile"></div>
     <div class="stats" id="dtStats"></div>
     <div id="dtFeaturedWrap">
@@ -731,7 +739,7 @@ const UI = {
     searchPh:"Heldennamen eingeben…",
     lgOk:"Richtig", lgPart:"Teilweise / nah dran", lgNo:"Falsch",
     lgArrows:"↑ / ↓ = gesuchter Wert ist höher / niedriger",
-    boardCols:["Held","Geschlecht","Spezies","Zugehörigkeit","Rolle","Reichweite","HP"],
+    boardCols:["Held","Geschlecht","Spezies","Zugehörigkeit","Rolle","Angriff","Flug","Season","HP"],
     guessHint:'HP-Werte sind ca.-Angaben (Stand Season 8.5).<span class="mobile-only"> Tipp: Auf dem Handy kannst du die Tabelle seitlich wischen.</span>',
     bannerWin:(n)=>`Gefunden: <span>${n}</span>!`,
     bannerLose:(n)=>`Es war… <span>${n}</span>`,
@@ -742,6 +750,8 @@ const UI = {
     galleryTitle:'Helden-<span class="tint">Galerie</span>',
     filterAll:"Alle",
     galCount:(n)=>`${n} Helden`,
+    dtAbilities:"Fähigkeiten",
+    dtRange:"Reichweite",
     dtProfile:"Steckbrief",
     dtFeatured:"Taucht in diesen Strats auf",
     closeBtn:"Schließen"
@@ -774,7 +784,7 @@ const UI = {
     searchPh:"Type a hero name…",
     lgOk:"Correct", lgPart:"Partial / close", lgNo:"Wrong",
     lgArrows:"↑ / ↓ = target value is higher / lower",
-    boardCols:["Hero","Gender","Species","Affiliation","Role","Range","HP"],
+    boardCols:["Hero","Gender","Species","Affiliation","Role","Attack","Flight","Season","HP"],
     guessHint:'HP values are approximate (as of Season 8.5).<span class="mobile-only"> Tip: on mobile you can swipe the table sideways.</span>',
     bannerWin:(n)=>`Found: <span>${n}</span>!`,
     bannerLose:(n)=>`It was… <span>${n}</span>`,
@@ -785,6 +795,8 @@ const UI = {
     galleryTitle:'Hero <span class="tint">Gallery</span>',
     filterAll:"All",
     galCount:(n)=>`${n} heroes`,
+    dtAbilities:"Abilities",
+    dtRange:"Range",
     dtProfile:"Profile",
     dtFeatured:"Featured in these strats",
     closeBtn:"Close"
@@ -801,7 +813,10 @@ const ATTR = {
   af:{ avengers:{de:"Avengers",en:"Avengers"}, xmen:{de:"X-Men",en:"X-Men"}, guardians:{de:"Guardians",en:"Guardians"},
        f4:{de:"Fantastic Four",en:"Fantastic Four"}, spider:{de:"Spider-Verse",en:"Spider-Verse"},
        asgard:{de:"Asgard",en:"Asgard"}, shield:{de:"S.H.I.E.L.D.",en:"S.H.I.E.L.D."}, none:{de:"Keine",en:"None"} },
-  rg:{ melee:{de:"Nahkampf",en:"Melee"}, ranged:{de:"Fernkampf",en:"Ranged"}, hybrid:{de:"Hybrid",en:"Hybrid"} }
+  rg:{ melee:{de:"Nahkampf",en:"Melee"}, ranged:{de:"Fernkampf",en:"Ranged"}, hybrid:{de:"Hybrid",en:"Hybrid"} },
+  atk:{ melee:{de:"Nahkampf",en:"Melee"}, proj:{de:"Projektil",en:"Projectile"}, hitscan:{de:"Hitscan",en:"Hitscan"},
+        beam:{de:"Beam",en:"Beam"}, mixed:{de:"Gemischt",en:"Mixed"} },
+  fly:{ 1:{de:"Ja",en:"Yes"}, 0:{de:"Nein",en:"No"} }
 };
 
 let LANG = (navigator.language||"en").toLowerCase().startsWith("de") ? "de" : "en";
@@ -1051,6 +1066,340 @@ const STRATS = [
    d:{de:"Alle sechs lassen ihren Helden vom <b>Random-Charakter-Rad</b> in dieser App bestimmen. Kein Reroll, kein Jammern.",
       en:"All six let the <b>random character wheel</b> in this app pick their hero. No rerolls, no whining."}}
 ];
+
+/* =====================================================
+   FÄHIGKEITEN – vereinfachte, eigene Kurzbeschreibungen
+   Format: "Heldenname": [ [Fähigkeit, Beschreibung DE, Beschreibung EN], … ]
+   Bei einigen neueren Helden sind beschreibende Bezeichnungen
+   statt offizieller Namen verwendet – frei editierbar.
+   ===================================================== */
+const ABILITIES = {
+"Captain America":[
+ ["Sentinel Strike","Schildschläge im Nahkampf, auf kurze Distanz auch als Wurf.","Melee shield strikes, doubles as a short-range throw."],
+ ["Living Legend","Schild heben: blockt Schaden und lenkt Projektile ab.","Raise the shield to block and deflect projectiles."],
+ ["Liberty Rush","Schild-Charge nach vorn, stößt Gegner weg.","Shield charge that knocks enemies back."],
+ ["Super-Soldier Slam","Sprung mit anschließendem Bodenschlag.","Leap followed by a ground slam."],
+ ["Freedom Charge (Ult)","Hinterlässt einen Pfad, der dem Team laufend Bonus-HP gibt.","Leaves a trail granting allies ongoing bonus health."]],
+"Doctor Strange":[
+ ["Daggers of Denak","Fächer aus Magie-Projektilen.","Fan of magic dagger projectiles."],
+ ["Shield of the Seraphim","Große Barriere, die viel Schaden schluckt.","Large barrier soaking heavy damage."],
+ ["Cloak of Levitation","Kurzer Aufstieg/Schwebeflug.","Brief levitation to reach high ground."],
+ ["Maelstrom of Madness","Entlädt gesammelte Dunkle Energie als AoE.","Releases stored dark energy as an AoE."],
+ ["Pentagram of Farallah","Portal zwischen zwei Orten – für das ganze Team.","Portal linking two spots – usable by everyone."],
+ ["Eye of Agamotto (Ult)","Trennt Seelen vom Körper; Schaden an Seelen zählt aufs Original.","Separates souls; damage to souls carries over."]],
+"Groot":[
+ ["Vine Strike","Ranken-Projektile als Primärangriff.","Vine projectiles as primary fire."],
+ ["Thornlash Wall","Dornenwand, die Gegnern in der Nähe schadet.","Thorn wall damaging nearby enemies."],
+ ["Ironwood Wall","Massive Blockwand gegen Beschuss und Wege.","Sturdy wall blocking shots and paths."],
+ ["Spore Bomb","Explodierende Sporenladung.","Explosive spore charge."],
+ ["Strangling Prison (Ult)","Fesselt getroffene Gegner in einem Rankengefängnis.","Traps enemies inside a vine prison."]],
+"Hulk":[
+ ["Heavy Blow","Wuchtige Gamma-Fäuste.","Heavy gamma-powered punches."],
+ ["Indestructible Guard","Gamma-Schild für Hulk und nahe Verbündete.","Gamma shield for Hulk and nearby allies."],
+ ["Incredible Leap","Aufladbarer Riesensprung – perfekt für Dives.","Chargeable mega leap – perfect for dives."],
+ ["Radioactive Lockdown","Blockiert kurz die Fähigkeiten eines Gegners.","Briefly locks an enemy out of abilities."],
+ ["Hulk Smash! (Ult)","Verwandlung in Monster-Hulk: mehr HP, mehr Wut.","Transforms into Monster Hulk: more HP, more rage."]],
+"Magneto":[
+ ["Iron Volley","Magnetische Metallgeschosse.","Magnetic metal projectiles."],
+ ["Metallic Curtain","Breiter Vorhang, der Projektile stoppt.","Wide curtain stopping projectiles."],
+ ["Metal Bulwark","Schutzblase auf einem Verbündeten.","Protective bubble on an ally."],
+ ["Mag-Cannon","Aufgeladener Schuss mit starkem Rückstoß.","Charged shot with heavy knockback."],
+ ["Meteor M (Ult)","Sammelt Projektile in einer Riesenkugel und schleudert sie.","Absorbs projectiles into a giant sphere, then hurls it."]],
+"Peni Parker":[
+ ["Cyber-Web Cluster","Netz-Projektile aus dem SP//dr-Mech.","Web projectiles from the SP//dr mech."],
+ ["Bionic Spider-Nest","Nest, das Kampf-Spinnendrohnen ausbrütet.","Nest spawning battle spider drones."],
+ ["Arachno-Mine","Versteckte Minen – in Netzen unsichtbar.","Hidden mines – invisible inside webs."],
+ ["Cyber-Bond","Netzleine zum Ziehen und Schwingen.","Web tether for pulling and swinging."],
+ ["Spider-Sweeper (Ult)","Mech im Overdrive: räumt auf und legt Minen nach.","Mech overdrive: sweeps up and deploys extra mines."]],
+"Thor":[
+ ["Mjolnir Bash","Hammerhiebe, aufgeladen mit Thorkraft.","Hammer strikes fueled by Thorforce."],
+ ["Storm Surge","Blitz-Dash, der Gegner wegstößt.","Lightning dash knocking enemies back."],
+ ["Lightning Realm","Blitzfeld, das Gegner bindet und Thorkraft erzeugt.","Lightning zone tagging enemies, generating Thorforce."],
+ ["Hammer Throw","Mjolnir-Wurf auf Distanz.","Ranged Mjolnir throw."],
+ ["God of Thunder (Ult)","Sprung und gewaltiger Blitzeinschlag im Bereich.","Leap and massive area lightning strike."]],
+"Venom":[
+ ["Dark Predation","Tentakel-Schläge des Symbionten.","Symbiote tendril strikes."],
+ ["Venom Swing","Schwingen für schnelle An- und Abflüge.","Swinging for fast engages and exits."],
+ ["Cellular Corrosion","Tentakel, die Gegner verlangsamen und zersetzen.","Tendrils slowing and corroding enemies."],
+ ["Symbiotic Resilience","Je weniger HP, desto mehr Bonus-Schild.","The lower his HP, the more bonus health he gains."],
+ ["Feast of the Abyss (Ult)","Taucht ab und verschlingt Gegner – Schaden nach Max-HP.","Burrows and devours enemies – damage scales with max HP."]],
+"The Thing":[
+ ["Boulder Punch","Steinharte Faustschläge.","Rock-hard punches."],
+ ["Yancy Street Charge","Anlauf, der gegnerische Mobilität unterbindet.","Charge that shuts down enemy mobility."],
+ ["Embattled Leap","Sprung zu einem Verbündeten inkl. Schadensreduktion.","Leap to an ally granting damage reduction."],
+ ["Unyielding (Passiv)","Immun gegen Knockbacks.","Immune to knockbacks."],
+ ["Clobberin' Time (Ult)","Sprung-Slam, der Gegner in die Luft wirft.","Leaping slam launching enemies airborne."]],
+"Emma Frost":[
+ ["Telepathic Pulse","Psi-Strahl, der sich bei Treffern auflädt.","Psychic beam ramping up on hits."],
+ ["Mind's Aegis","Versetzbare telepathische Barriere.","Repositionable telepathic barrier."],
+ ["Diamond Form","Diamantgestalt: Nahkampf, CC-Immunität, weniger Schaden.","Diamond form: melee, CC immunity, damage reduction."],
+ ["Carbon Crush","Weiter Lunge-Grab in Diamantform.","Long-range lunge grab in diamond form."],
+ ["Psionic Seduction (Ult)","Zwingt Gegner, langsam auf sie zuzulaufen.","Forces enemies to slowly walk toward her."]],
+"Angela":[
+ ["Speer & Axt","Nahkampf-Kombos mit himmlischen Waffen.","Melee combos with celestial weapons."],
+ ["Flug","Dauerhafter Flug – der einzige fliegende Vanguard neben Rogue.","Sustained flight – rare among vanguards."],
+ ["Sturm-Charge","Charge, der Gegner aus der Position ins eigene Team drückt.","Charge shoving enemies out of position into your team."],
+ ["Ultimate","Verstärkter Angriffsmodus mit großem Frontdruck.","Empowered assault mode with heavy frontline pressure."]],
+"Rogue":[
+ ["Prügel-Kombos","Fliegende Nahkampfschläge mit Südstaaten-Charme.","Flying melee brawling with southern charm."],
+ ["Flug","Frei fliegen und Dives einleiten.","Free flight to start dives."],
+ ["Kraft-Absorption","Entzieht Gegnern kurzzeitig Kräfte und nutzt sie selbst.","Drains enemy powers and uses them herself."],
+ ["Ultimate","Entfesselt absorbierte Energie in einem großen Finish.","Unleashes absorbed energy in a big finisher."]],
+"Devil Dinosaur":[
+ ["Primal Bite","Langsamer, harter Biss, der Blutung verursacht.","Slow, heavy bite inflicting bleed."],
+ ["Impact Beam","Energiestrahl aus dem Maul – stark gegen Flieger.","Mouth energy beam – great vs. flyers."],
+ ["Savage Predation","Schnapp-Grab; betäubt blutende Ziele.","Jaw grab; stuns bleeding targets."],
+ ["Frenzied Feast","Beißserie, verheerend gegen blutende Gegner.","Bite flurry, devastating vs. bleeding enemies."],
+ ["Buddy Barrier","Schutzkuppel von Moon Girl, verlangsamt Gegner darin.","Moon Girl's dome shield, slows enemies inside."],
+ ["Devil-Beast Rampage (Ult)","Rennt 10s als Urgewalt: Schockwellen, Blutung, Bonus-HP.","10s rampage: shockwaves, bleed, bonus health."]],
+"Black Panther":[
+ ["Vibranium Claws","Schnelle Krallen-Kombos.","Fast claw combos."],
+ ["Spear Toss","Speerwurf, der Gegner mit Vibranium markiert.","Spear throw marking enemies with Vibranium."],
+ ["Spirit Rend","Dash, der sich beim Verbrauch von Marks zurücksetzt.","Dash refreshing when consuming marks."],
+ ["Spinning Kick","Rundumkick, auch als Fluchtwerkzeug.","Spin kick, doubles as an escape tool."],
+ ["Bast's Descent (Ult)","Bast erscheint – verstärkte Dashes und Marks für alle Ziele.","Bast descends – empowered dashes, marks on all targets."]],
+"Black Widow":[
+ ["Red Room Rifle","Scharfschützengewehr für präzise Kopftreffer.","Sniper rifle for precise headshots."],
+ ["Batons","Elektro-Schlagstöcke für den Nahkampf-Modus.","Electro batons for close-quarters mode."],
+ ["Fleet Foot","Sprint mit hohem Sprung – raus aus der Gefahr.","Sprint with a high jump – out of danger."],
+ ["Electro-Plasma Explosion (Ult)","Verstärkte Schüsse erzeugen verlangsamende Explosionszonen.","Empowered shots create slowing blast zones."]],
+"Blade":[
+ ["Schwert-Kombos","Katana-Schnitte mit eingebautem Lifesteal.","Katana slashes with built-in lifesteal."],
+ ["Glefen-Wurf","Klingenwurf für Ziele auf Distanz.","Blade throw for ranged targets."],
+ ["Vampirjäger-Instinkt","Schaden heilt ihn – dranbleiben lohnt sich.","Damage dealt heals him – staying in wins."],
+ ["Ultimate","Entfesselte Klingenserie über das Schlachtfeld.","Unleashed blade rampage across the field."]],
+"Black Cat":[
+ ["Claw Strike","Krallenangriffe, die viel Fortune erzeugen.","Claw attacks generating lots of Fortune."],
+ ["Grappling Hook","Enterhaken für Flanken und Fluchten.","Grappling hook for flanks and escapes."],
+ ["Turn of Fortune","Glücksangriff mit großem Fortune-Bonus.","Lucky strike with a big Fortune payoff."],
+ ["Phantom Pursuit","Verfolgungs-Dash auf ihr Ziel.","Pursuit dash onto her target."],
+ ["Tablet of Destinies","Relikt mit zufällig starker Wirkung.","Relic with randomized payoff."],
+ ["Jinxed (Passiv)","Getroffene Gegner kritten unzuverlässiger.","Hit enemies crit less reliably."],
+ ["Ultimate","Setzt gesammeltes Fortune in einen verheerenden Coup um.","Converts stored Fortune into a devastating heist finale."]],
+"Cyclops":[
+ ["Optic Blast","Hitscan-Laser; Treffer verkürzen Ricochet Force.","Hitscan laser; hits recharge Ricochet Force."],
+ ["Concussive Beam","Dauerstrahl, der zwischen Zielen und Wänden bricht.","Sustained beam refracting between targets and walls."],
+ ["Ricochet Force","Abprall-Strahl, der Gegner verfolgt; gibt Bonus-HP.","Bouncing beam tracking enemies; grants bonus health."],
+ ["Propulsion Burst","Rückstoß-Strahl: stößt ihn und das Ziel auseinander.","Propulsion beam pushing him and the target apart."],
+ ["Optic Ascent","Laser nach unten katapultiert ihn in die Luft.","Downward blast launching him airborne."],
+ ["Ruby Rage (Ult)","Visier ab: Riesenlaser, dessen Spur danach explodiert.","Visor off: giant laser whose trail then detonates."]],
+"Daredevil":[
+ ["Billy Clubs","Schlagstock-Kombos im Nahkampf.","Billy club melee combos."],
+ ["Seilschwung","Grapple für vertikale Flanken.","Grapple for vertical flanks."],
+ ["Radar-Sinn","Spürt Gegner auch durch Wände auf.","Senses enemies even through walls."],
+ ["Ultimate","Gnadenlose Angriffsserie auf markierte Ziele.","Relentless assault on marked targets."]],
+"Elsa Bloodstone":[
+ ["Bloodstone-Schrotflinte","Brutaler Burst auf kurze Distanz.","Brutal close-range burst."],
+ ["Monsterjäger-Werkzeuge","Utility gegen Diver und Monster jeder Art.","Utility against divers and monsters of any kind."],
+ ["Glartrox (Ult)","Ihr Monster hält Gegner fest gefangen.","Her monster traps enemies in place."]],
+"Hawkeye":[
+ ["Piercing Arrow","Aufgeladene Pfeile mit One-Shot-Potenzial.","Charged arrows with one-shot potential."],
+ ["Blast Arrow","Explosivpfeile für Gruppen.","Explosive arrows for groups."],
+ ["Hypersonic Arrow","Breiter Klingenpfeil, der durchschneidet.","Wide blade arrow slicing through."],
+ ["Crescent Slash / Skyward Leap","Nahkampf-Konter und hoher Sprung.","Melee counter and high leap."],
+ ["Hunter's Sight (Ult)","Sieht Nachbilder – Treffer darauf zählen aufs Original.","Sees afterimages – hits on them count on the original."]],
+"Hela":[
+ ["Nightsword","Präzise Klingenprojektile mit hohem Headshot-Schaden.","Precise blade projectiles with big headshot damage."],
+ ["Piercing Night","Klingenfächer, der verzögert explodiert.","Blade volley detonating with delay."],
+ ["Soul Drainer","Orb, der Gegner im Bereich betäubt.","Orb stunning enemies in an area."],
+ ["Astral Flock","Wird zu Raben – Flucht oder Repositionierung.","Turns into ravens – escape or reposition."],
+ ["Goddess of Death (Ult)","Schwebt auf und regnet Todesklingen herab.","Rises up and rains death blades."]],
+"Human Torch":[
+ ["Fire Cluster","Feuerprojektile im Flug.","Fire projectiles while flying."],
+ ["Pyro-Prison","Verbindet Feuerfelder zu brennenden Wänden.","Links fire fields into burning walls."],
+ ["Flaming Meteor","Sturzflug-Slam nach unten.","Meteor dive slam."],
+ ["Supernova (Ult)","Maximale Flamme: Feuerstürme im Bereich.","Max flame: firestorms across the area."]],
+"Iron Fist":[
+ ["Yat Jee Chung Kuen","Blitzschnelle Schlagserien.","Lightning-fast punch flurries."],
+ ["Dragon's Defense","Parade, die Konter verstärkt.","Parry empowering his counters."],
+ ["Harmony Recovery","Meditative Selbstheilung.","Meditative self-heal."],
+ ["Crane Leap","Mehrfachsprünge und Wandläufe.","Multi-jumps and wall runs."],
+ ["Living Chi (Ult)","Chi-Form: schneller, stärker, größere Treffer.","Chi form: faster, stronger, bigger hits."]],
+"Iron Man":[
+ ["Repulsor Blast","Repulsor-Schüsse aus beiden Händen.","Repulsor shots from both palms."],
+ ["Unibeam","Brust-Dauerstrahl.","Sustained chest beam."],
+ ["Micro-Missile Barrage","Raketenhagel aus der Rüstung.","Missile barrage from the armor."],
+ ["Hyper Velocity","Boost-Flug mit verstärkten Angriffen.","Boost flight with empowered attacks."],
+ ["Pulse Cannon (Ult)","Riesiges Energieprojektil, löscht ganze Gruppen.","Huge energy projectile erasing whole groups."]],
+"Magik":[
+ ["Soulsword","Seelenschwert-Kombos, erzeugen Limbus-Bonus-HP.","Soulsword combos generating Limbo bonus health."],
+ ["Stepping Discs","Portal-Dash durch den Limbus.","Portal dash through Limbo."],
+ ["Umbral Incursion","Vorstoß, der Gegner in die Luft schlägt.","Lunge knocking enemies airborne."],
+ ["Darkchild (Ult)","Verwandlung in Darkchild: verstärkte Magie und Reichweite.","Transforms into Darkchild: empowered magic and reach."]],
+"Mister Fantastic":[
+ ["Stretch Punch","Dehnbare Schläge mit Reichweite.","Stretchy long-range punches."],
+ ["Flexible Elongation","Zieht sich zu Zielen und schirmt sich ab.","Pulls himself to targets while shielding."],
+ ["Distended Grip","Packt zwei Gegner und schlägt sie zusammen.","Grabs two enemies and slams them together."],
+ ["Inflated State","Ballon-Form: Bonus-HP und Knockbacks.","Balloon form: bonus health and knockbacks."],
+ ["Brainstorm (Ult)","Riesenform, die durch die Gegnerreihen stampft.","Giant form stomping through enemy lines."]],
+"Moon Knight":[
+ ["Crescent Dart","Mondsicheln, die zwischen Zielen abprallen.","Crescent darts bouncing between targets."],
+ ["Ancient Ankh","Ankh-Zone, die Gegner zieht und Projektile umlenkt.","Ankh zone pulling enemies and redirecting projectiles."],
+ ["Moon Blade","Schwere Klinge mit Mehrfach-Bounce.","Heavy blade with multi-bounce."],
+ ["Night Glider","Umhang-Gleiten und hoher Sprung.","Cape glide and high jump."],
+ ["Hand of Khonshu (Ult)","Khonshus Krallen schlagen aus einem Portal herab.","Khonshu's talons strike down from a portal."]],
+"Namor":[
+ ["Trident of Neptune","Dreizackwürfe mit Wucht.","Powerful trident throws."],
+ ["Aquatic Dominion","Beschwört Monster-Türme, die Ziele attackieren.","Summons monster turrets attacking targets."],
+ ["Blessing of the Deep","Schutzblase – kurz unverwundbar aufsteigen.","Protective bubble – rise briefly invulnerable."],
+ ["Wrath of the Seven Seas","Verstärkter Wurf, lenkt alle Türme aufs Ziel.","Empowered throw directing all turrets onto the target."],
+ ["Horn of Proteus (Ult)","Ruft Giganto, der den Bereich zermalmt.","Summons Giganto crushing the area."]],
+"Phoenix":[
+ ["Phoenix-Feuer","Feuerprojektile, die Funken-Marks setzen.","Fire projectiles applying spark marks."],
+ ["Detonation","Zündet alle markierten Funken gleichzeitig.","Detonates all marked sparks at once."],
+ ["Phoenix-Flug","Feuriger Teleport-Dash.","Fiery teleport dash."],
+ ["Dark Phoenix (Ult)","Inferno-Entfesselung mit Wiedergeburts-Sicherheit.","Inferno unleashed with rebirth insurance."]],
+"Psylocke":[
+ ["Psionic Crossbow","Psi-Shuriken-Salven.","Psi shuriken volleys."],
+ ["Psi-Blade Dash","Klingen-Dash, der sich bei Treffern verkürzt.","Blade dash recharging on hits."],
+ ["Psychic Stealth","Unsichtbar und schneller unterwegs.","Invisible and faster on the move."],
+ ["Dance of the Butterfly (Ult)","Klingentanz, der einen ganzen Bereich zerschneidet.","Blade dance shredding an entire area."]],
+"Scarlet Witch":[
+ ["Chaos Control","Auto-Zielstrahl, entzieht Lebensessenz.","Auto-lock beam draining life essence."],
+ ["Chthonian Burst","Explosive Chaos-Geschosse.","Explosive chaos bolts."],
+ ["Mystic Projection","Körperlos schweben – unverwundbar phasen.","Phase into an untouchable astral form."],
+ ["Dark Seal","Feld, das Gegner betäubt.","Field stunning enemies."],
+ ["Reality Erasure (Ult)","Lädt auf und löscht alles im Umkreis.","Charges up and erases everything nearby."]],
+"Spider-Man":[
+ ["Spider-Power","Schnelle Nahkampf-Kombos.","Fast melee combos."],
+ ["Web-Cluster & Tracer","Netzschüsse, die Ziele markieren.","Web shots tagging targets."],
+ ["Web-Swing","Schwingen in jede Richtung.","Swing anywhere."],
+ ["Get Over Here!","Zieht sich ans markierte Ziel heran.","Zips onto the tagged target."],
+ ["Spectacular Spin (Ult)","Netz-Explosion, die Gegner benommen macht.","Web burst dazing enemies."]],
+"Squirrel Girl":[
+ ["Burst Acorn","Abprallende Eichel-Geschosse.","Bouncing acorn projectiles."],
+ ["Squirrel Blockade","Eichhörnchen-Barrikade, die Gegner fesselt.","Squirrel blockade binding enemies."],
+ ["Tail Bounce","Schwanz-Sprung auf Hochpositionen.","Tail bounce onto high ground."],
+ ["Unbeatable Squirrel Tsunami (Ult)","Eichhörnchenwelle, die von Wänden abprallt.","Squirrel wave bouncing off walls."]],
+"Star-Lord":[
+ ["Element Guns","Schnelle Doppel-Blaster.","Rapid dual blasters."],
+ ["Stellar Shift","Ausweichrolle mit Sofort-Nachladen.","Dodge roll with instant reload."],
+ ["Blaster Barrage","Dauerfeuer, das nahe Ziele automatisch trifft.","Sustained fire auto-hitting nearby targets."],
+ ["Rocket Propulsion","Jet-Boost nach vorn.","Forward jet boost."],
+ ["Galactic Legend (Ult)","Freier Flug mit perfektem Zielsystem.","Free flight with perfect target lock."]],
+"Storm":[
+ ["Wind Blade","Windklingen-Projektile.","Wind blade projectiles."],
+ ["Weather Witch","Aura-Wechsel: Tempo- oder Schadens-Boost fürs Team.","Aura switch: speed or damage boost for the team."],
+ ["Bolt Rush","Blitzschuss.","Lightning bolt shot."],
+ ["Goddess Boost","Verstärkt die aktuelle Aura kurzzeitig.","Briefly amplifies the current aura."],
+ ["Omega Hurricane (Ult)","Wird zum Sturmzentrum und zieht Gegner hinein.","Becomes a hurricane pulling enemies in."]],
+"The Punisher":[
+ ["Adjudication / Deliverance","Sturmgewehr und Schrotflinte im Wechsel.","Rifle and shotgun, swap as needed."],
+ ["Culling Turret","Stationäres MG mit Schild.","Stationary turret with a shield."],
+ ["Vantage Connection","Zipline auf Hochpositionen.","Zipline to high ground."],
+ ["Scourge Grenade","Rauchgranate, die Sicht raubt.","Smoke grenade denying vision."],
+ ["Final Judgement (Ult)","Doppel-Gatlings und Raketen im Dauerfeuer.","Twin gatlings and rockets, nonstop."]],
+"Winter Soldier":[
+ ["Roterstern","Schwere Pistole mit Wumms.","Heavy hand cannon."],
+ ["Bionic Hook","Zieht Gegner zu sich heran.","Hooks enemies toward him."],
+ ["Trooper's Fist","Dash, der Ziele mitnimmt.","Dash carrying targets along."],
+ ["Tainted Voltage","Schockschuss gegen Gruppen.","Shock blast against groups."],
+ ["Kraken Impact (Ult)","Sprung-Slam; Takedowns setzen ihn zurück. Again!","Leap slam; takedowns reset it. Again!"]],
+"Wolverine":[
+ ["Savage Claw","Adamantium-Krallenhiebe; Wut steigert den Schaden.","Adamantium claw strikes; rage boosts damage."],
+ ["Feral Leap","Sprung, der ein Ziel packt und wegträgt.","Pounce grabbing and carrying a target."],
+ ["Undying Animal","Kurzzeitig deutlich weniger Schaden.","Briefly takes much less damage."],
+ ["Regeneration (Passiv)","Heilt sich selbst, übersteht Todesstöße.","Self-heals, survives killing blows."],
+ ["Last Stand (Ult)","Eruption, die Gegner hochschleudert und slammt.","Eruption launching and slamming enemies."]],
+"Adam Warlock":[
+ ["Quantum Magic","Magie-Geschosse mit Präzision.","Precise magic bolts."],
+ ["Avatar Life Stream","Heilstrahl, der zwischen Verbündeten springt.","Heal beam bouncing between allies."],
+ ["Soul Bond","Verbindet das Team: Schaden wird geteilt, alle heilen.","Links the team: damage shared, everyone heals."],
+ ["Cocoon (Passiv)","Wiedergeburt im Kokon nach dem Tod.","Rebirth in a cocoon after dying."],
+ ["Karmic Revival (Ult)","Belebt gefallene Verbündete im Umkreis wieder.","Revives fallen allies nearby."]],
+"Cloak & Dagger":[
+ ["Lightforce Daggers","Daggers Dolche heilen Verbündete, schaden Gegnern.","Dagger's blades heal allies, hurt enemies."],
+ ["Veil of Lightforce","Heilender Lichtschleier.","Healing veil of light."],
+ ["Darkforce Cloak","Cloaks Schattenstrahl zehrt Gegner aus.","Cloak's shadow beam drains enemies."],
+ ["Terror Cape","Schwächt und blendet Gegner.","Weakens and blinds enemies."],
+ ["Dark Teleportation","Phasen-Teleport fürs ganze Team.","Phase teleport for the whole team."],
+ ["Eternal Bond (Ult)","Mehrfache Dashes hinterlassen Heil-/Schadenspfade.","Multiple dashes leaving heal/damage trails."]],
+"Gambit":[
+ ["Kinetische Karten","Aufgeladene Karten: heilen Freunde, verbrennen Feinde.","Charged cards: heal friends, burn foes."],
+ ["Bo-Stab","Stabkampf für die Nahdistanz.","Bo staff for close range."],
+ ["Kinetische Aufladung","Lädt Objekte und Angriffe explosiv auf.","Charges objects and attacks explosively."],
+ ["Ultimate","Volles Deck: kinetische Entladung im großen Stil, mon ami.","Full deck: kinetic discharge writ large, mon ami."]],
+"Invisible Woman":[
+ ["Orb Projection","Durchdringender Orb – heilt und schadet auf Hin- und Rückweg.","Piercing orb healing and damaging both ways."],
+ ["Guardian Shield","Barriere auf einem Ziel.","Barrier on a target."],
+ ["Psionic Vortex","Sog, der Gegner zusammenzieht.","Vortex pulling enemies together."],
+ ["Force Physics","Kraftfeld-Push und -Pull.","Force push and pull."],
+ ["Unsichtbarkeit (Passiv)","Wird unsichtbar, wenn sie nicht angreift.","Turns invisible when not attacking."],
+ ["Invisible Boundary (Ult)","Zone: Team unsichtbar und dauerhaft geheilt.","Zone: team invisible and continuously healed."]],
+"Jeff the Land Shark":[
+ ["Joyful Splash","Heilender Wasserstrahl.","Healing water spray."],
+ ["Aqua Burst","Wasserblasen-Schaden auf Distanz.","Ranged water burst damage."],
+ ["Healing Bubbles","Spuckt Heilblasen zum Aufsammeln.","Spits pickup healing bubbles."],
+ ["Hide and Seek","Taucht ab – schwer zu treffen, schnell unterwegs.","Submerges – hard to hit, fast on the move."],
+ ["It's Jeff! (Ult)","Verschlingt alle im Bereich und spuckt sie aus – gern über die Kante.","Swallows everyone nearby and spits them out – ideally off a cliff."]],
+"Loki":[
+ ["Mystic Missile","Projektile, die Gegnern schaden und Verbündete heilen.","Bolts damaging enemies and healing allies."],
+ ["Doppelgänger","Illusions-Klone, die mitschießen.","Illusion clones firing alongside."],
+ ["Regeneration Domain","Feld: heilt und macht kurz immun.","Field: heals and grants brief immunity."],
+ ["Deception","Unsichtbar; Positionstausch mit einem Klon.","Invisibility; swap places with a clone."],
+ ["God of Mischief (Ult)","Kopiert einen beliebigen Helden samt Ultimate.","Copies any hero including their ultimate."]],
+"Luna Snow":[
+ ["Light & Dark Ice","Eisgeschosse: heilen Verbündete, schaden Gegnern.","Ice shots: heal allies, damage enemies."],
+ ["Absolute Zero","Frost-Projektil, das Gegner einfriert.","Frost projectile freezing enemies."],
+ ["Share the Stage","Idol-Mark: Heilung springt aufs markierte Ziel über.","Idol mark: healing carries over to the marked ally."],
+ ["Smooth Skate","Gleitet auf Eis übers Feld.","Skates across the field on ice."],
+ ["Fate of Both Worlds (Ult)","Tanz-Ult: Dauerheilung oder Damage-Boost, umschaltbar.","Dance ult: toggle between big healing and damage boost."]],
+"Mantis":[
+ ["Life Energy Blast","Blüten-Projektile; Krits erzeugen Blätter.","Petal bolts; crits generate leaves."],
+ ["Healing Flower","Heilung über Zeit auf ein Ziel.","Heal-over-time on a target."],
+ ["Allied Inspiration","Damage-Boost für Verbündete.","Damage boost for allies."],
+ ["Spore Slumber","Spore, die Gegner einschläfert.","Spore putting enemies to sleep."],
+ ["Soul Resurgence (Ult)","Aura: Heilung, Tempo und Bonus-HP.","Aura: healing, speed and bonus health."]],
+"Rocket Raccoon":[
+ ["Repair Mode","Heilkugeln, die an Wänden abprallen.","Healing orbs bouncing off walls."],
+ ["Attack Mode","Schnellfeuer-Blaster.","Rapid-fire blaster."],
+ ["B.R.B.","Beacon: belebt wieder und spendiert Rüstungs-Packs.","Beacon reviving allies and dropping armor packs."],
+ ["Jetpack Dash & Wild Crawl","Flink an Wänden und durch die Luft.","Nimble on walls and through the air."],
+ ["C.Y.A. (Ult)","Verstärker: massiver Damage-Boost fürs Team.","Amplifier: massive team damage boost."]],
+"Ultron":[
+ ["Encephalo-Ray","Präziser Schadensstrahl.","Precise damage beam."],
+ ["Imperative: Patch","Drohnen, die Verbündete automatisch heilen.","Drones auto-healing allies."],
+ ["Imperative: Firewall","Schutzprotokoll mit Bonus-HP.","Protection protocol granting bonus health."],
+ ["Dynamic Flight","Dauerflug über dem Geschehen.","Sustained flight above the fight."],
+ ["Rage of Ultron (Ult)","Drohnenschwarm bombardiert Gegner und heilt das Team.","Drone swarm bombing enemies while healing the team."]],
+"White Fox":[
+ ["Yeowoo Gusuel","Fuchsmurmeln: heilen Verbündete, schaden Gegnern, prallen ab.","Fox marbles: heal allies, damage enemies, ricochet."],
+ ["Spectral Surge","Kurzer Unverwundbarkeits-Schub plus Heilung.","Brief invulnerability burst plus healing."],
+ ["Fox Form Awakening","Kumiho-Form: Nahkampf mit Heil-Aura fürs Team.","Kumiho form: melee with a healing aura."],
+ ["Teleport & Dashes","Wieselflink allen Dives entwischen.","Slips away from every dive."],
+ ["Kumiho Unleashed (Ult)","Volle Fuchsform: rasend schnell, heilt und pusht das Team.","Full fox form: blazing fast, heals and pushes the team."]],
+"Deadpool":[
+ ["Formwechsel","Wählt vor dem Spawn Tank-, DPS- oder Support-Form.","Picks tank, DPS or support form before spawning."],
+ ["Desert Eagles","Doppel-Pistolen der Gun-Form.","Gun form's dual hand cannons."],
+ ["Katanas","Klingenwirbel der Nahkampf-Form.","Melee form's blade whirlwind."],
+ ["Regeneration","Wächst einfach wieder nach. Ist so.","Just grows back. It's a thing."],
+ ["Ban Hammer (Ult, Gun-Form)","Riesiger Bann-Hammer, der ihn beim Austeilen heilt.","Giant ban hammer healing him while he swings."]]
+};
+
+/* Zusatz-Attribute für Guess the Character: [Angriffstyp, Flug 0/1, Release-Season]
+   Season: 0 = Launch, 1 = S1, 1.5 = S1.5, … */
+const GUESS_EXTRA = {
+"Captain America":["melee",0,0], "Doctor Strange":["proj",0,0], "Groot":["proj",0,0],
+"Hulk":["melee",0,0], "Magneto":["proj",0,0], "Peni Parker":["proj",0,0],
+"Thor":["melee",0,0], "Venom":["melee",0,0], "The Thing":["melee",0,1.5],
+"Emma Frost":["beam",0,2], "Angela":["melee",1,4], "Rogue":["melee",1,5],
+"Devil Dinosaur":["melee",0,8],
+"Black Panther":["melee",0,0], "Black Widow":["hitscan",0,0], "Blade":["melee",0,3.5],
+"Black Cat":["melee",0,7.5], "Cyclops":["hitscan",0,8.5], "Daredevil":["melee",0,4],
+"Elsa Bloodstone":["hitscan",0,6.5], "Hawkeye":["proj",0,0], "Hela":["hitscan",0,0],
+"Human Torch":["proj",1,1.5], "Iron Fist":["melee",0,0], "Iron Man":["proj",1,0],
+"Magik":["melee",0,0], "Mister Fantastic":["melee",0,1], "Moon Knight":["proj",0,0],
+"Namor":["proj",0,0], "Phoenix":["hitscan",0,3], "Psylocke":["proj",0,0],
+"Scarlet Witch":["beam",0,0], "Spider-Man":["melee",0,0], "Squirrel Girl":["proj",0,0],
+"Star-Lord":["hitscan",0,0], "Storm":["proj",1,0], "The Punisher":["hitscan",0,0],
+"Winter Soldier":["hitscan",0,0], "Wolverine":["melee",0,0],
+"Adam Warlock":["proj",0,0], "Cloak & Dagger":["proj",0,0], "Gambit":["proj",0,4.5],
+"Invisible Woman":["proj",0,1], "Jeff the Land Shark":["beam",0,0], "Loki":["proj",0,0],
+"Luna Snow":["proj",0,0], "Mantis":["proj",0,0], "Rocket Raccoon":["proj",0,0],
+"Ultron":["beam",1,2.5], "White Fox":["proj",0,7], "Deadpool":["mixed",0,6]
+};
+function heroExtra(h){ const e = GUESS_EXTRA[h.n] || ["proj",0,0]; return {atk:e[0], fly:e[1], se:e[2]}; }
+function seasonLabel(v){ return v===0 ? "Launch" : "S"+v; }
 
 /* ===================================================== SOUND */
 let audioCtx = null, muted = false;
@@ -1610,15 +1959,29 @@ function openHeroSheet(hero){
   document.getElementById("dtName").textContent = hero.n;
   document.getElementById("dtInfo").innerHTML = hero.i[LANG];
 
+  // Fähigkeiten
+  const abBox = document.getElementById("dtAbilityList");
+  abBox.innerHTML = "";
+  (ABILITIES[hero.n]||[]).forEach(([an, de, en])=>{
+    const rowEl = document.createElement("div");
+    rowEl.className = "ab-row";
+    rowEl.innerHTML = `<b>${an}</b><span>${LANG==="de"?de:en}</span>`;
+    abBox.appendChild(rowEl);
+  });
+
   // Steckbrief: gleiche Kategorien wie bei Guess the Character
-  const cols = t("boardCols"); // [Held, Geschlecht, Spezies, Zugehörigkeit, Rolle, Reichweite, HP]
+  const cols = t("boardCols");
+  const ex = heroExtra(hero);
   const rows = [
     [cols[1], attr("g", hero.g)],
     [cols[2], attr("sp", hero.sp)],
     [cols[3], hero.af.map(a=>attr("af",a)).join(", ")],
     [cols[4], role.name],
-    [cols[5], attr("rg", hero.rg)],
-    [cols[6], "~"+hero.hp]
+    [cols[5], attr("atk", ex.atk)],
+    [cols[6], attr("fly", ex.fly)],
+    [cols[7], seasonLabel(ex.se)],
+    [t("dtRange"), attr("rg", hero.rg)],
+    [cols[8], "~"+hero.hp]
   ];
   document.getElementById("dtStats").innerHTML =
     rows.map(([k,v])=>`<div class="stat-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
@@ -1714,12 +2077,15 @@ function cmpHP(g, tg){
   return {s: Math.abs(g-tg)<=50 ? "part" : "no", a: tg>g ? "↑" : "↓"};
 }
 function evalGuess(h){
+  const he = heroExtra(h), te = heroExtra(target);
   return {
     g:  h.g===target.g ? "ok":"no",
     sp: h.sp===target.sp ? "ok":"no",
     af: cmpSet(h.af, target.af),
     r:  h.r===target.r ? "ok":"no",
-    rg: h.rg===target.rg ? "ok" : (h.rg==="hybrid"||target.rg==="hybrid" ? "part":"no"),
+    atk: he.atk===te.atk ? "ok" : (he.atk==="mixed"||te.atk==="mixed" ? "part":"no"),
+    fly: he.fly===te.fly ? "ok":"no",
+    se: he.se===te.se ? {s:"ok",a:""} : {s: Math.abs(he.se-te.se)<=1 ? "part":"no", a: te.se>he.se ? "↑":"↓"},
     hp: cmpHP(h.hp, target.hp)
   };
 }
@@ -1730,8 +2096,9 @@ function buildRow(idx, animate){
   row.className = "board-row";
   if(!animate) row.style.setProperty("--noanim","1");
 
+  const ex = heroExtra(h);
   const heroCell = document.createElement("div");
-  heroCell.className = "cell hero";
+  heroCell.className = "cell hero " + (h.n===target.n ? "ok" : "no");
   heroCell.appendChild(avatarNode(h,"sm"));
   const nm = document.createElement("span");
   nm.textContent = h.n;
@@ -1743,12 +2110,14 @@ function buildRow(idx, animate){
     [res.sp, attr("sp",h.sp)],
     [res.af, h.af.map(a=>attr("af",a)).join(", ")],
     [res.r,  ROLES[h.r].name],
-    [res.rg, attr("rg",h.rg)],
+    [res.atk, attr("atk",ex.atk)],
+    [res.fly, attr("fly",ex.fly)],
+    [res.se.s, seasonLabel(ex.se)+(res.se.a?' <span class="arrow">'+res.se.a+'</span>':'')],
   ];
   cells.forEach(([cls,txt])=>{
     const c = document.createElement("div");
     c.className = "cell " + cls;
-    c.textContent = txt;
+    c.innerHTML = txt;
     row.appendChild(c);
   });
   const hpCell = document.createElement("div");
@@ -1774,7 +2143,7 @@ function makeGuess(idx){
   if(h.n === target.n){ endGuess(true); }
   else{
     const res = evalGuess(h);
-    const anyHit = [res.g,res.sp,res.af,res.r,res.rg,res.hp.s].some(v=>v==="ok"||v==="part");
+    const anyHit = [res.g,res.sp,res.af,res.r,res.atk,res.fly,res.se.s,res.hp.s].some(v=>v==="ok"||v==="part");
     anyHit ? sndClick() : sndWrong();
   }
 }
