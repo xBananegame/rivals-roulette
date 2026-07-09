@@ -126,6 +126,22 @@
   }
   .mode-toggle button.on{background:var(--gold);color:var(--bg)}
   .mode-hint{color:var(--muted);font-size:11.5px;text-align:center;margin-bottom:10px;min-height:15px}
+  .count-label{font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:4px 0 6px}
+  .count-toggle button{font-size:14px;padding:10px 4px}
+  .team-row{display:flex;align-items:center;gap:12px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .team-row .slot{
+    flex:none;width:26px;height:26px;display:grid;place-items:center;
+    background:var(--gold);color:var(--bg);clip-path:var(--slash);
+    font-weight:900;font-style:italic;font-size:12px;
+  }
+  .team-row .who{flex:1;min-width:0}
+  .team-row .who b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .team-row .who span{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--tr)}
+  .team-row .reroll{
+    flex:none;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);
+    width:36px;height:36px;clip-path:var(--cut);font-size:16px;cursor:pointer;transition:transform .12s;
+  }
+  .team-row .reroll:active{transform:scale(.9) rotate(20deg)}
 
   .legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:2px 0 12px}
   .legend span{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
@@ -525,8 +541,10 @@
           <div class="wheel-glow"></div>
           <canvas id="wheel"></canvas>
           <div class="pointer" id="pointer"></div>
-          <div class="hub"><span data-i18n="hubLabel"></span><b id="hubCount">51</b></div>
+          <div class="hub"><span data-i18n="hubLabel"></span><b id="hubCount">52</b></div>
         </div>
+        <div class="mode-hint" id="teamStatus"></div>
+        <div class="chips" id="teamPicks" style="justify-content:center"></div>
       </div>
 
       <div class="wheel-right">
@@ -536,7 +554,17 @@
         </div>
         <div class="mode-hint" id="modeHint"></div>
 
-        <div class="actions">
+        <div class="count-label" data-i18n="playersLabel"></div>
+        <div class="mode-toggle count-toggle" role="group" aria-label="Players" id="countToggle">
+          <button class="on" onclick="setPlayers(1)">1</button>
+          <button onclick="setPlayers(2)">2</button>
+          <button onclick="setPlayers(3)">3</button>
+          <button onclick="setPlayers(4)">4</button>
+          <button onclick="setPlayers(5)">5</button>
+          <button onclick="setPlayers(6)">6</button>
+        </div>
+
+        <div class="actions" style="margin-top:10px">
           <button class="btn big" id="spinBtn" onclick="spin()" data-i18n="spinBtn"></button>
         </div>
 
@@ -660,7 +688,7 @@
 </div>
 
 <!-- ============ RESULT SHEET ============ -->
-<div class="sheet-backdrop" id="backdrop" onclick="closeSheet(); closeHeroSheet()"></div>
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet(); closeHeroSheet(); closeTeamSheet()"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="resultName">
   <div class="grip"></div>
   <div class="result-top">
@@ -706,6 +734,19 @@
   </div>
 </div>
 
+<!-- ============ TEAM-ERGEBNIS (Random Team) ============ -->
+<div class="sheet" id="teamSheet" role="dialog" aria-modal="true">
+  <div class="grip"></div>
+  <span class="role-badge" style="--rb:var(--gold)" data-i18n="teamTag"></span>
+  <div class="sheet-scroll" id="teamList" style="margin-top:8px"></div>
+  <div class="actions" style="margin-top:16px">
+    <div class="actions-row">
+      <button class="btn ghost" onclick="rollTeam()" data-i18n="teamRerollAll"></button>
+      <button class="btn ghost" onclick="closeTeamSheet()" data-i18n="keepBtn"></button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =====================================================
    SPRACHEN / LANGUAGES
@@ -719,7 +760,7 @@ const UI = {
     menuStratDesc:"Eine zufällige Team-Strategie für die nächste Runde – plus Bibliothek mit allen Strats zum Nachlesen.",
     menuGuessTitle:'Guess the <span>Character</span>',
     menuGuessDesc:"Ein geheimer Held wird gewählt. Rate dich über Geschlecht, Spezies, Rolle & Co. heran – Grün, Gelb, Rot zeigen dir den Weg.",
-    rosterNote:(h,s)=>`Roster: ${h} Helden · Stand Season 8.5 (Juni 2026) · ${s} Strats<br>Fan-Projekt, nicht mit NetEase/Marvel verbunden.`,
+    rosterNote:(h,s)=>`Roster: ${h} Helden · Stand Season 9 (Juli 2026) · ${s} Strats<br>Fan-Projekt, nicht mit NetEase/Marvel verbunden.`,
     wheelTitle:'Random <span class="tint">Charakter</span>',
     hubLabel:"Im Rad", modeSimple:"Einfach", modeMixed:"Gemischt",
     hintSimple:"Helden nach Rollen gruppiert", hintMixed:"Alle Helden wild durchgemischt",
@@ -741,16 +782,22 @@ const UI = {
     lgOk:"Richtig", lgPart:"Teilweise / nah dran", lgNo:"Falsch",
     lgArrows:"↑ / ↓ = gesuchter Wert ist höher / niedriger",
     boardCols:["Held","Geschlecht","Spezies","Zugehörigkeit","Rolle","Angriff","Flug","Season","HP"],
-    guessHint:'HP-Werte sind ca.-Angaben (Stand Season 8.5).<span class="mobile-only"> Tipp: Auf dem Handy kannst du die Tabelle seitlich wischen.</span>',
+    guessHint:'HP = Gesamtleben inkl. regenerierender Schilde, ca.-Angaben (Stand Season 9).<span class="mobile-only"> Tipp: Auf dem Handy kannst du die Tabelle seitlich wischen.</span>',
     bannerWin:(n)=>`Gefunden: <span>${n}</span>!`,
     bannerLose:(n)=>`Es war… <span>${n}</span>`,
     bannerWinText:(t,i)=>`Stark – geknackt in <b>${t}</b> ${t===1?"Versuch":"Versuchen"}. ${i}`,
     playAgainBtn:"Nochmal spielen",
     menuGalleryTitle:'Helden-<span>Galerie</span>',
-    menuGalleryDesc:"Alle 51 Helden im Überblick – mit Bild, Spielstil-Info und dem kompletten Steckbrief für Guess the Character.",
+    menuGalleryDesc:"Alle 52 Helden im Überblick – mit Bild, Spielstil-Info und dem kompletten Steckbrief für Guess the Character.",
     galleryTitle:'Helden-<span class="tint">Galerie</span>',
     filterAll:"Alle",
     galCount:(n)=>`${n} Helden`,
+    playersLabel:"Spieler",
+    spinFor:(i,n)=>`Rad dreht für Spieler ${i} von ${n} …`,
+    teamTag:"Euer Team",
+    teamRerollAll:"Alle neu auslosen",
+    teamSlot:(n)=>`Spieler ${n}`,
+    teamRerollTip:"Diesen Slot neu auslosen",
     dtAbilities:"Fähigkeiten",
     dtRange:"Reichweite",
     dtProfile:"Steckbrief",
@@ -765,7 +812,7 @@ const UI = {
     menuStratDesc:"A random team strategy for your next match – plus a library with every strat to read up on.",
     menuGuessTitle:'Guess the <span>Character</span>',
     menuGuessDesc:"A secret hero is chosen. Narrow it down via gender, species, role & more – green, yellow and red show you the way.",
-    rosterNote:(h,s)=>`Roster: ${h} heroes · as of Season 8.5 (June 2026) · ${s} strats<br>Fan project, not affiliated with NetEase/Marvel.`,
+    rosterNote:(h,s)=>`Roster: ${h} heroes · as of Season 9 (July 2026) · ${s} strats<br>Fan project, not affiliated with NetEase/Marvel.`,
     wheelTitle:'Random <span class="tint">Character</span>',
     hubLabel:"In wheel", modeSimple:"Simple", modeMixed:"Shuffled",
     hintSimple:"Heroes grouped by role", hintMixed:"All heroes wildly shuffled",
@@ -786,16 +833,22 @@ const UI = {
     lgOk:"Correct", lgPart:"Partial / close", lgNo:"Wrong",
     lgArrows:"↑ / ↓ = target value is higher / lower",
     boardCols:["Hero","Gender","Species","Affiliation","Role","Attack","Flight","Season","HP"],
-    guessHint:'HP values are approximate (as of Season 8.5).<span class="mobile-only"> Tip: on mobile you can swipe the table sideways.</span>',
+    guessHint:'HP = total health incl. regenerative shields, approximate (as of Season 9).<span class="mobile-only"> Tip: on mobile you can swipe the table sideways.</span>',
     bannerWin:(n)=>`Found: <span>${n}</span>!`,
     bannerLose:(n)=>`It was… <span>${n}</span>`,
     bannerWinText:(t,i)=>`Nice – cracked in <b>${t}</b> ${t===1?"try":"tries"}. ${i}`,
     playAgainBtn:"Play again",
     menuGalleryTitle:'Hero <span>Gallery</span>',
-    menuGalleryDesc:"All 51 heroes at a glance – with image, playstyle info and the full Guess-the-Character profile.",
+    menuGalleryDesc:"All 52 heroes at a glance – with image, playstyle info and the full Guess-the-Character profile.",
     galleryTitle:'Hero <span class="tint">Gallery</span>',
     filterAll:"All",
     galCount:(n)=>`${n} heroes`,
+    playersLabel:"Players",
+    spinFor:(i,n)=>`Spinning for player ${i} of ${n}…`,
+    teamTag:"Your team",
+    teamRerollAll:"Reroll all",
+    teamSlot:(n)=>`Player ${n}`,
+    teamRerollTip:"Reroll this slot",
     dtAbilities:"Abilities",
     dtRange:"Range",
     dtProfile:"Profile",
@@ -995,6 +1048,9 @@ const HEROES = [
   {n:"White Fox",       r:"S", g:"f", sp:"kumiho",  af:["none"],               rg:"hybrid", hp:250,
    i:{de:"Kumiho-Spionin aus Südkorea – wandelt zwischen Fuchs- und Menschenform und hält das Team am Leben.",
       en:"Kumiho super-spy from South Korea – shifts between fox and human form while keeping the team alive."}},
+  {n:"Jubilee",         r:"S", g:"f", sp:"mutant",  af:["xmen"],               rg:"ranged", hp:275,
+   i:{de:"Feuerwerks-Support mit Tempo: heilt mit Plasmoiden, blendet Gegner und spielt aggressiver als mancher DPS.",
+      en:"Firework support with pace: heals with plasmoids, blinds enemies and plays more aggressively than some DPS."}},
   // ---- Multi-Role
   {n:"Deadpool",        r:"F", g:"m", sp:"human",   af:["none"],               rg:"hybrid", hp:300,
    i:{de:"Der erste Multi-Role-Held: Tank, DPS oder Support – Wade entscheidet spontan. Chimichangas optional.",
@@ -1035,7 +1091,7 @@ const STRATS = [
   {t:{de:"X-Men only",en:"X-Men only"},
    d:{de:"Nur <b>Mutanten der X-Men</b>. Professor X wäre stolz. Oder auch nicht.",
       en:"Only <b>X-Men mutants</b>. Professor X would be proud. Or maybe not."},
-   h:["Wolverine","Storm","Magik","Psylocke","Magneto","Emma Frost","Phoenix","Gambit","Rogue","Cyclops"]},
+   h:["Wolverine","Storm","Magik","Psylocke","Magneto","Emma Frost","Phoenix","Gambit","Rogue","Cyclops","Jubilee"]},
   {t:{de:"Guardians of the Galaxy",en:"Guardians of the Galaxy"},
    d:{de:"Die <b>Guardians</b> bilden den Kern eures Teams, ein Slot ist frei. Awesome Mix läuft im Hintergrund – Pflicht.",
       en:"The <b>Guardians</b> form the core of your team, one slot is free. Awesome Mix playing in the background – mandatory."},
@@ -1047,7 +1103,7 @@ const STRATS = [
   {t:{de:"Ladies Night",en:"Ladies' Night"},
    d:{de:"Nur <b>weibliche Heldinnen</b> im Team. Die Auswahl ist riesig – Ausreden gibt es keine.",
       en:"Only <b>female heroes</b> on the team. The selection is huge – no excuses."},
-   h:["Black Widow","Storm","Hela","Magik","Psylocke","Scarlet Witch","Squirrel Girl","Luna Snow","Mantis","Invisible Woman","Emma Frost","Phoenix","Angela","Rogue","Elsa Bloodstone","Black Cat","White Fox","Peni Parker"]},
+   h:["Black Widow","Storm","Hela","Magik","Psylocke","Scarlet Witch","Squirrel Girl","Luna Snow","Mantis","Invisible Woman","Emma Frost","Phoenix","Angela","Rogue","Elsa Bloodstone","Black Cat","White Fox","Jubilee","Peni Parker"]},
   {t:{de:"Kein Ult",en:"No ults"},
    d:{de:"<b>Ultimates sind verboten.</b> Wer trotzdem eins zündet, muss die restliche Runde beim Respawn 10 Sekunden warten – Ehrenkodex.",
       en:"<b>Ultimates are banned.</b> Anyone who pops one anyway has to wait 10 seconds at spawn for the rest of the round – honor code."}},
@@ -1065,7 +1121,28 @@ const STRATS = [
       en:"Everyone picks heroes whose names start with <b>the same letter</b>. Agree fast – options get tight. Tip: S and M are your friends."}},
   {t:{de:"Wheelspin-Runde",en:"Wheelspin round"},
    d:{de:"Alle sechs lassen ihren Helden vom <b>Random-Charakter-Rad</b> in dieser App bestimmen. Kein Reroll, kein Jammern.",
-      en:"All six let the <b>random character wheel</b> in this app pick their hero. No rerolls, no whining."}}
+      en:"All six let the <b>random character wheel</b> in this app pick their hero. No rerolls, no whining."}},
+  {t:{de:"Entenmarsch",en:"Duckling March"},
+   d:{de:"Einer ist die <b>Entenmama</b> – alle anderen watscheln ihr das ganze Match in einer Reihe hinterher. Wohin sie geht, geht ihr. Auch von der Klippe.",
+      en:"One player is the <b>mama duck</b> – everyone else waddles behind them in a line all match. Wherever they go, you go. Even off the cliff."}},
+  {t:{de:"Funkstille",en:"Radio Silence"},
+   d:{de:"Es wird <b>nicht geredet</b>. Kein Voice, keine Pings, kein Chat. Kommuniziert wird nur durch Blicke – und Verzweiflung.",
+      en:"<b>Nobody talks.</b> No voice, no pings, no chat. You communicate through vibes – and despair."}},
+  {t:{de:"Sens-Roulette",en:"Sens Roulette"},
+   d:{de:"Alle stellen die <b>Maus-Empfindlichkeit</b> um: Münzwurf entscheidet, ob auf Maximum oder so niedrig, dass es gerade noch spielbar ist. Nach der Runde zurückstellen nicht vergessen!",
+      en:"Everyone changes their <b>mouse sensitivity</b>: coin flip decides whether it goes to max or as low as barely playable. Don't forget to reset it afterwards!"}},
+  {t:{de:"Falsche Fährte",en:"False Callouts"},
+   d:{de:"Es dürfen nur <b>falsche Callouts</b> gemacht werden. „Hela hinter uns!“ heißt: Da ist definitiv keine Hela. Wer die Wahrheit sagt, hat verloren.",
+      en:"Only <b>false callouts</b> are allowed. \"Hela behind us!\" means there is definitely no Hela. Telling the truth means you lose."}},
+  {t:{de:"Der Auserwählte",en:"The Chosen One"},
+   d:{de:"Ein Spieler wird zum <b>Auserwählten</b> – er darf nicht sterben. Stirbt er doch, ergibt sich der Rest sofort und lässt sich ohne Gegenwehr auslöschen. Beschützt ihn mit allem, was ihr habt! (Nur im Team spielbar)",
+      en:"One player is the <b>Chosen One</b> – they must not die. If they fall, everyone else surrenders immediately and lets themselves be wiped out. Protect them with everything you have! (Team only)"}},
+  {t:{de:"Hero-Marathon",en:"Hero Marathon"},
+   d:{de:"Jeder Held wird nur <b>ein Leben lang</b> gespielt: Nach jedem Tod wird zum nächsten Helden gewechselt – kein Held darf doppelt vorkommen. Mal sehen, wie tief ihr ins Roster kommt.",
+      en:"Every hero gets exactly <b>one life</b>: after each death you switch to a new hero – no repeats. Let's see how deep into the roster you get."}},
+  {t:{de:"Maus ODER Tastatur",en:"Mouse OR Keyboard"},
+   d:{de:"Niemals beides gleichzeitig: Wer <b>läuft</b>, darf die Maus nicht bewegen – wer <b>zielt oder sich umschaut</b>, muss stehen bleiben. Laufen wie ein Panzer aus 1998.",
+      en:"Never both at once: while <b>moving</b> you can't touch the mouse – while <b>aiming or looking around</b> you must stand still. Driving like a 1998 tank."}}
 ];
 
 /* =====================================================
@@ -1369,6 +1446,12 @@ const ABILITIES = {
  ["Fox Form Awakening","Kumiho-Form: Nahkampf mit Heil-Aura fürs Team.","Kumiho form: melee with a healing aura."],
  ["Teleport & Dashes","Wieselflink allen Dives entwischen.","Slips away from every dive."],
  ["Kumiho Unleashed (Ult)","Volle Fuchsform: rasend schnell, heilt und pusht das Team.","Full fox form: blazing fast, heals and pushes the team."]],
+"Jubilee":[
+ ["Energy Plasmoids","Leuchtende Projektile: heilen Verbündete, schaden Gegnern.","Glowing projectiles: heal allies, damage enemies."],
+ ["Blooming Ball","Energieball, der durch Beschuss immer weiter anwächst.","Energy ball growing bigger the more you feed it."],
+ ["Dazzling Detonation","Setzt Sparkle-Marks: beim Zünden Bonus-HP fürs Team, Blendung für Gegner.","Applies sparkle marks: popping them grants ally bonus health and blinds enemies."],
+ ["Sparking Sprint","Tempo-Schub mit stark erhöhter Feuerrate ohne Nachladen.","Speed burst with hugely increased fire rate, no reloads."],
+ ["Firework Finale (Ult)","Riesiger Feuerwerksring, der sich ausdehnen und zusammenziehen lässt.","Giant firework ring you can expand and retract."]],
 "Deadpool":[
  ["Formwechsel","Wählt vor dem Spawn Tank-, DPS- oder Support-Form.","Picks tank, DPS or support form before spawning."],
  ["Desert Eagles","Doppel-Pistolen der Gun-Form.","Gun form's dual hand cannons."],
@@ -1397,7 +1480,7 @@ const GUESS_EXTRA = {
 "Adam Warlock":["proj",0,0], "Cloak & Dagger":["proj",0,0], "Gambit":["proj",0,4.5],
 "Invisible Woman":["proj",0,1], "Jeff the Land Shark":["beam",0,0], "Loki":["proj",0,0],
 "Luna Snow":["proj",0,0], "Mantis":["proj",0,0], "Rocket Raccoon":["proj",0,0],
-"Ultron":["beam",1,2.5], "White Fox":["proj",0,7], "Deadpool":["mixed",0,6]
+"Ultron":["beam",1,2.5], "White Fox":["proj",0,7], "Jubilee":["proj",0,9], "Deadpool":["mixed",0,6]
 };
 function heroExtra(h){ const e = GUESS_EXTRA[h.n] || ["proj",0,0]; return {atk:e[0], fly:e[1], se:e[2]}; }
 function seasonLabel(v){ return v===0 ? "Launch" : "S"+v; }
@@ -1634,6 +1717,7 @@ function applyI18n(){
   if(currentStrat) renderStratCard(currentStrat);
   if(currentHero && document.getElementById("sheet").classList.contains("show")) fillSheet(currentHero);
   if(currentDetail) openHeroSheet(currentDetail);
+  if(document.getElementById("teamSheet").classList.contains("show")) renderTeam();
   renderBoard();
   if(guessOver && target) renderBanner();
 }
@@ -1658,6 +1742,16 @@ const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 let benched = new Set();
 let mode = "simple";
+let playerCount = 1;
+let currentTeam = [];
+const tempRemoved = new Set(); // waehrend der Team-Drehserie gezogene Helden
+
+function setPlayers(n){
+  if(spinning) return;
+  playerCount = n;
+  document.querySelectorAll("#countToggle button").forEach((b,i)=> b.classList.toggle("on", i+1===n));
+  sndClick();
+}
 let order = HEROES.map((_,i)=>i);
 let rotation = -Math.PI/2;
 let spinning = false;
@@ -1683,7 +1777,7 @@ function setMode(m){
   drawWheel();
 }
 function activeHeroes(){
-  return order.filter(i=>!benched.has(i)).map(i=>({...HEROES[i], idx:i}));
+  return order.filter(i=>!benched.has(i) && !tempRemoved.has(i)).map(i=>({...HEROES[i], idx:i}));
 }
 function wheelCss(){
   return window.innerWidth>=900 ? 440 : Math.min(window.innerWidth*0.86, 400);
@@ -1746,49 +1840,84 @@ function segUnderPointer(n, seg){
 }
 function easeOutQuart(x){ return 1-Math.pow(1-x,4); }
 
-function spin(){
+function spinOnce(dur){
+  return new Promise(resolve=>{
+    const list = activeHeroes();
+    const n = list.length;
+    const seg = (Math.PI*2)/n;
+    const winner = Math.floor(Math.random()*n);
+    const targetMod = -Math.PI/2 - (winner+0.5)*seg;
+    const currentMod = ((rotation % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+    let delta = ((targetMod - currentMod) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+    const turns = dur>3000 ? 5+Math.floor(Math.random()*3) : 2+Math.floor(Math.random()*2);
+    const total = delta + turns*Math.PI*2;
+    const start = rotation;
+    const t0 = performance.now();
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    lastTickSeg = segUnderPointer(n, seg);
+    function frame(now){
+      const x = Math.min((now-t0)/(reduced? 150 : dur), 1);
+      rotation = start + total*easeOutQuart(x);
+      drawWheel();
+      const cur = segUnderPointer(n, seg);
+      if(cur !== lastTickSeg){ lastTickSeg = cur; sndTick(); }
+      if(x<1){ requestAnimationFrame(frame); }
+      else{
+        rotation = start+total;
+        drawWheel();
+        document.getElementById("pointer").classList.add("wobble");
+        setTimeout(()=>document.getElementById("pointer").classList.remove("wobble"),520);
+        resolve(list[winner]);
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+async function spin(){
   if(spinning) return;
-  const list = activeHeroes();
-  if(list.length<2){ resetBench(); return; }
+  if(activeHeroes().length < Math.max(2, playerCount)){ resetBench(); return; }
   spinning = true;
   document.getElementById("spinBtn").disabled = true;
+  const statusEl = document.getElementById("teamStatus");
+  const picksEl = document.getElementById("teamPicks");
+  picksEl.innerHTML = ""; statusEl.textContent = "";
 
-  const n = list.length;
-  const seg = (Math.PI*2)/n;
-  const winner = Math.floor(Math.random()*n);
+  if(playerCount === 1){
+    currentHero = await spinOnce(4200 + Math.random()*600);
+    sndFanfare();
+    spinning = false;
+    document.getElementById("spinBtn").disabled = false;
+    setTimeout(()=>{ fillSheet(currentHero); openSheet(); }, 380);
+    return;
+  }
 
-  const targetMod = -Math.PI/2 - (winner+0.5)*seg;
-  const currentMod = ((rotation % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
-  let delta = ((targetMod - currentMod) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
-  const turns = 5 + Math.floor(Math.random()*3);
-  const total = delta + turns*Math.PI*2;
-
-  const start = rotation;
-  const dur = 4200 + Math.random()*600;
-  const t0 = performance.now();
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  lastTickSeg = segUnderPointer(n, seg);
-
-  function frame(now){
-    const x = Math.min((now-t0)/(reduced? 200 : dur), 1);
-    rotation = start + total*easeOutQuart(x);
-    drawWheel();
-    const cur = segUnderPointer(n, seg);
-    if(cur !== lastTickSeg){ lastTickSeg = cur; sndTick(); }
-    if(x<1){ requestAnimationFrame(frame); }
-    else{
-      rotation = start+total;
-      drawWheel();
-      spinning = false;
-      document.getElementById("spinBtn").disabled = false;
-      document.getElementById("pointer").classList.add("wobble");
-      setTimeout(()=>document.getElementById("pointer").classList.remove("wobble"),520);
-      currentHero = list[winner];
-      sndFanfare();
-      setTimeout(()=>{ fillSheet(currentHero); openSheet(); }, 380);
+  // Team-Modus: eine Drehung pro Spieler, gezogene Helden verlassen das Rad
+  currentTeam = [];
+  tempRemoved.clear();
+  for(let i=0;i<playerCount;i++){
+    statusEl.textContent = t("spinFor")(i+1, playerCount);
+    const hero = await spinOnce(i===0 ? 4200 : 2200 + Math.random()*300);
+    currentTeam.push(hero);
+    tempRemoved.add(hero.idx);
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.style.cursor = "default";
+    chip.innerHTML = `<b style="color:var(--gold);font-style:italic">${i+1}</b>&nbsp;${hero.n}`;
+    picksEl.appendChild(chip);
+    if(i < playerCount-1){
+      sndPop();
+      drawWheel(); // Rad ohne den gezogenen Helden neu zeichnen
+      await new Promise(r=>setTimeout(r, 650));
     }
   }
-  requestAnimationFrame(frame);
+  tempRemoved.clear();
+  drawWheel();
+  statusEl.textContent = "";
+  sndFanfare();
+  spinning = false;
+  document.getElementById("spinBtn").disabled = false;
+  setTimeout(()=>openTeamSheet(), 350);
 }
 
 /* ---------- Result-Sheet ---------- */
@@ -1808,6 +1937,59 @@ function openSheet(){
 function closeSheet(){
   document.getElementById("backdrop").classList.remove("show");
   document.getElementById("sheet").classList.remove("show");
+}
+
+/* ---------- Random Team ---------- */
+function rollTeam(){
+  // Schließt das Panel und startet die komplette Drehserie neu
+  closeTeamSheet();
+  setTimeout(()=>spin(), 250);
+}
+function rerollSlot(i){
+  const used = new Set(currentTeam.map(h=>h.idx));
+  const pool = activeHeroes().filter(h=>!used.has(h.idx));
+  if(pool.length===0) return;
+  currentTeam[i] = pool[Math.floor(Math.random()*pool.length)];
+  renderTeam();
+  sndClick();
+}
+function renderTeam(){
+  const box = document.getElementById("teamList");
+  box.innerHTML = "";
+  currentTeam.forEach((h,i)=>{
+    const row = document.createElement("div");
+    row.className = "team-row";
+    row.style.setProperty("--tr", ROLES[h.r].color);
+    const slot = document.createElement("span");
+    slot.className = "slot";
+    slot.textContent = i+1;
+    slot.title = t("teamSlot")(i+1);
+    row.appendChild(slot);
+    row.appendChild(avatarNode(h,"sm"));
+    const who = document.createElement("div");
+    who.className = "who";
+    who.innerHTML = `<b>${h.n}</b><span>${ROLES[h.r].name}</span>`;
+    row.appendChild(who);
+    const rr = document.createElement("button");
+    rr.className = "reroll";
+    rr.textContent = "🎲";
+    rr.title = t("teamRerollTip");
+    rr.onclick = ()=>rerollSlot(i);
+    row.appendChild(rr);
+    box.appendChild(row);
+  });
+}
+function openTeamSheet(){
+  renderTeam();
+  document.getElementById("backdrop").classList.add("show");
+  document.getElementById("teamSheet").classList.add("show");
+}
+function closeTeamSheet(){
+  document.getElementById("teamSheet").classList.remove("show");
+  if(!document.getElementById("sheet").classList.contains("show") &&
+     !document.getElementById("heroSheet").classList.contains("show")){
+    document.getElementById("backdrop").classList.remove("show");
+  }
 }
 
 /* ---------- Auslassen / Zurücksetzen ---------- */
